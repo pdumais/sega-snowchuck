@@ -1,5 +1,4 @@
 images/chuck.pas
-*.bmp
 images/levels.vasm
 images/sprites.vasm
 src/game.bin
