@@ -1,0 +1,54 @@
+; Snowchuck
+; Patrick Dumais
+; No AI-generated code here
+;
+
+JUMP_HEIGHT = 90                    ; height to reach before starting to fall back down
+JUMP_DELTA = 3                      ; Incremental change to height when jumping
+FALL_SPEED_START = 1                ; will increment by 1 until it reaches 5
+COLLISION_TOLERANCE        = 4
+ADDR_VDP_CTRL              = $C00004
+ADDR_VDP_DATA              = $C00000
+ADDR_CONTROLLER1_CTRL       = $A10009
+ADDR_CONTROLLER1_DATA       = $A10003
+ADDR_SRAM_CTRL              = $A130F1
+TILE_WIDTH = 24
+MID_SCREEN = 160
+BACKBUF_X_START = 0
+BACKBUF_Y_START = 0
+CHUCK_MOVE_SPEED = 2
+
+    macro PUSH
+        move.l      \1,-(sp)
+    endm
+
+    macro POP
+        move.l      (sp)+, \1
+    endm
+
+    macro WAIT    
+        move.l      d0,-(sp)
+        move        \1,d0
+wait_loop\@: nop
+        dbra        d0,wait_loop\@
+        move.l      (sp)+, d0
+    endm
+
+    macro CLI
+        move.w      #$2700, sr     ; disable interrupts
+    endm
+
+    macro STI
+        move.w      #$2000, sr     ; disable interrupts
+    endm
+
+    macro WAIT_SYNC
+    move.l      d0,-(sp)
+    move.l      #\1,d0
+    move.b      #0,RAM_VSYNC_TICK
+.1\@: cmp.b        #1,RAM_VSYNC_TICK
+    bne         .1\@
+    move.b      #0,RAM_VSYNC_TICK
+    dbra        d0,.1\@
+    move.l      (sp)+,d0
+    endm

@@ -1,0 +1,152 @@
+    section .text
+    
+    include defines.vasm
+
+; ##########################################################################################
+
+    xdef sound_init
+    xdef sound_start_song
+    xdef sound_stop_song
+    xdef sound_play_fx
+    xdef sound_play_jump
+
+; ##########################################################################################
+
+Z80_RAM        = $A00000
+Z80_BUSREQ     = $A11100
+Z80_RESET      = $A11200
+;Z80_COMMAND    = Z80_RAM+$0400
+;Z80_SONG_NUMBER= Z80_RAM+$0408
+
+; ##########################################################################################
+
+; ##########################################################################################
+; # sound_init
+; ##########################################################################################
+sound_init:
+    movem.l     a0-a1/d0,-(sp)
+
+    move.w      #$0000,Z80_RESET                    ; assert reset
+    move.w      #$0100,Z80_BUSREQ                   ; request bus
+    move.w      #$0100,Z80_RESET                    ; release reset
+
+    ; Copy z80 firmware
+    lea         z80_bin_start,a0
+    lea         Z80_RAM,a1
+    move.w      #(z80_bin_end-z80_bin_start)-1,d0
+.copy:
+    move.b      (a0)+,(a1)+
+    dbra        d0,.copy
+    move.l      a1,(z80_bss)
+
+    ; Init first song data
+    move.b      #0,d0
+    move.b      d0,(a1)
+    move.b      d0,1(a1)
+
+    move.w      #$0000,Z80_RESET                    ; assert reset and wait for a bit
+    move.w      #20, d0
+.1: dbra        d0,.1                
+
+    move.w  #$0100,Z80_RESET                    ; release reset
+    move.w  #$0000,Z80_BUSREQ                   ; release bus
+
+    movem.l     (sp)+,a0-a1/d0
+    rts
+
+; ##########################################################################################
+; # sound_start_song (d0= song number)
+; ##########################################################################################
+sound_start_song:
+    movem.l     a0-a1/d0,-(sp)
+
+    move.w      #$100, Z80_BUSREQ
+.1: btst        #0, Z80_BUSREQ
+    bne.s       .1
+
+    move.l      (z80_bss),a0
+    move.b      d0,1(a0)
+    move.b      #1,(a0)
+
+    move.w      #$0000,Z80_BUSREQ                   ; release bus
+
+    movem.l     (sp)+,a0-a1/d0
+    rts
+
+; ##########################################################################################
+; # sound_stop_song
+; ##########################################################################################
+sound_stop_song:
+    move.w  #$100, Z80_BUSREQ
+.1: btst    #0, Z80_BUSREQ
+    bne.s   .1
+    
+    PUSH        a0
+    move.l      (z80_bss),a0
+    move.b      #0,(a0)
+    POP         a0
+    move.w  #$0000,Z80_BUSREQ                   ; release bus
+    rts
+
+; ##########################################################################################
+; # sound_play_fx(d1=fx)
+; #   1 COIN
+; #   2 DEATH
+; #   3 OBJECT
+; #   4 COFFEE
+; ##########################################################################################
+sound_play_fx:
+    movem.l     d0-d1,-(sp)
+
+    lsl.w       #2,d1
+
+    move.w      #$100, Z80_BUSREQ
+.1: btst        #0, Z80_BUSREQ
+    bne.s       .1
+
+    PUSH        a0
+    move.l      (z80_bss),a0
+    move.b      (a0),d0
+    and.b       #%00000011,d0
+    or.b        d1,d0
+    move.b      d0,(a0)
+    POP         a0
+    move.w      #$0000,Z80_BUSREQ                   ; release bus
+
+    movem.l     (sp)+,d0-d1
+    rts
+
+; ##########################################################################################
+; # sound_play_jump (d1=true/false)
+; ##########################################################################################
+sound_play_jump:
+    movem.l     d0-d1,-(sp)
+
+    lsl.w       #1,d1
+
+    move.w      #$100, Z80_BUSREQ
+.1: btst        #0, Z80_BUSREQ
+    bne.s       .1
+
+    PUSH        a0
+    move.l      (z80_bss),a0
+    move.b      (a0),d0
+    and.b       #%11111101,d0
+    or.b        d1,d0
+    move.b      d0,(a0)
+    POP         a0
+    move.w      #$0000,Z80_BUSREQ                   ; release bus
+
+    movem.l     (sp)+,d0-d1
+    rts
+
+; ##########################################################################################
+
+z80_bin_start:
+    incbin "z80.bin"
+z80_bin_end:
+
+; ##########################################################################################
+
+    section .data
+z80_bss:        dc.l    0

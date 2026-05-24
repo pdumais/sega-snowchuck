@@ -1,0 +1,485 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; TODO: These values are harcoded but they could end up in different positions
+;       depending on where gensound.py placed them. The script goes in file order
+FX_COIN_REF     = $B042
+FX_DEATH_REF    = $B046
+FX_OBJECT_REF   = $B04A
+FX_COFFEE_REF    = $B04E
+
+    section .text
+    org $0000
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Boot 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    di
+    ld          sp, $1FFF
+    ld          a,0
+    ld          (song_last_state),a
+    jr          START
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Interrupt
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    rorg $0038
+; VBLank interrupt
+vblank:
+    push af
+
+    ld      a, (wait_counter)
+    cp      0
+    jr      z, .1
+    dec     a
+    ld      (wait_counter), a
+.1: 
+    ld      a, (fx1_wait)
+    cp      0
+    jr      z, .2
+    dec     a
+    ld      (fx1_wait), a
+.2: 
+    ld      a, (fx2_wait)
+    cp      0
+    jr      z, .3
+    dec     a
+    ld      (fx2_wait), a
+.3: 
+    ld      a, (fx3_wait)
+    cp      0
+    jr      z, .4
+    dec     a
+    ld      (fx3_wait), a
+.4: 
+    ld      a, (fx4_wait)
+    cp      0
+    jr      z, .5
+    dec     a
+    ld      (fx4_wait), a
+.5: 
+
+    pop af
+    ei
+    reti
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Application start
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+START:
+    ei
+
+    ; Load all sound FX into FX buffer and set fxX_pointer
+    ld          bc,fx_buffer
+
+    ld          (fx1_pointer),bc
+    ld          (fx1_base),bc
+    ld          hl,FX_COIN_REF
+    call        load_m68_address
+    call        vgm_copy
+    ld          (fx2_pointer),bc
+    ld          (fx2_base),bc
+    ld          hl,FX_DEATH_REF
+    call        load_m68_address
+    call        vgm_copy
+    ld          (fx3_pointer),bc
+    ld          (fx3_base),bc
+    ld          hl,FX_OBJECT_REF
+    call        load_m68_address
+    call        vgm_copy
+    ld          (fx4_pointer),bc
+    ld          (fx4_base),bc
+    ld          hl,FX_COFFEE_REF
+    call        load_m68_address
+    call        vgm_copy
+
+    ; Prepare the noise generator for jump
+
+    ld          a,$E4
+    ld          ($7F11),a
+    ld          a,$FF
+    ld          ($7F11),a
+
+.loop:
+    ld          hl,z80_command
+    ld          a,(hl)
+
+    bit         1,a ; should play JUMP?
+    jr          z,.nojump
+    call        play_fx_jump
+    jr          .done_checking_fx_jump
+.nojump:
+    call        stop_fx_jump
+.done_checking_fx_jump:
+    sra         a
+    sra         a
+    cp          1
+    jr          nz,.nocoin
+    call        play_fx_coin
+.nocoin:
+    cp          2
+    jr          nz,.nodeath
+    call        play_fx_death
+.nodeath:
+    cp          3
+    jr          nz,.noobject
+    call        play_fx_object
+.noobject:
+    cp          4
+    jr          nz,.nocoffee
+    call        play_fx_coffee
+.nocoffee:
+
+    ld          hl,z80_command
+    ld          a,(hl)
+    bit         0,a
+    jr          z,.2
+    call        play
+    jr          .loop
+
+.2: call        stop_playing
+    jr          .loop
+
+
+stop_playing:
+    ld      a,(song_last_state)
+    cp      0
+    jr      z, exit_stop_playing
+    ld      a,0
+    ld      (song_last_state),a
+
+    ld a,$40
+.1:
+    ld c,$3
+.2:
+    ld ($4000),a
+    ld ($4002),a
+    push af
+    ld a,$7F
+    ld ($4001),a
+    ld ($4003),a
+    pop af
+    inc a
+    dec c
+    jr nz,.2
+    inc a
+    cp $50
+    jr nz,.1
+
+    ; LFO off
+    ld      a,$22
+    ld      ($4000),a
+    xor     a
+    ld      ($4001),a
+
+    ; Timer A = 0
+    ld      a,$24
+    ld      ($4000),a
+    xor     a
+    ld      ($4001),a
+
+    ld      a,$25
+    ld      ($4000),a
+    xor     a
+    ld      ($4001),a
+
+    ; Timer B = 0
+    ld      a,$26
+    ld      ($4000),a
+    xor     a
+    ld      ($4001),a
+
+    ; Disable/reset timers
+    ld      a,$27
+    ld      ($4000),a
+    xor     a
+    ld      ($4001),a
+
+exit_stop_playing:
+    ret
+
+play:
+    push        af
+    ld          a,(song_last_state)
+    cp          1
+    jr          z, .checkstate
+
+    ld          bc,song_buffer
+    ld          (song_cursor),bc
+    ld          hl,$B002
+    ld          a,(z80_song_number)
+    sla         a
+    sla         a
+    ld          e,a
+    ld          d,0
+    add         hl,de  
+    call        load_m68_address
+    call        vgm_copy
+.checkstate:
+    ld          a,1
+    ld          (song_last_state),a
+    pop         af
+
+
+.song:
+    ld a,(wait_counter)     ; if wait counter is not zero, it means we need to wait until next note
+    cp 0
+    jr z,.1
+    ret
+.1:
+    ; Get table address with current index
+    ld hl,(song_cursor)
+
+    ; write registers
+    ld a,(hl)
+    inc hl
+    cp $FF
+    jr z,.table_loop
+    cp 1
+    jr z,.port1
+    cp 2
+    jr z,.wait
+
+.port0:    
+    ld a,(hl)
+    inc hl
+    ld ($4000),a
+    nop
+    nop
+    ld a,(hl)
+    inc hl
+    ld ($4001),a
+    nop
+    nop
+    jr .doneport
+
+.port1:
+    ld a,(hl)
+    inc hl
+    ld ($4002),a
+    nop
+    nop
+    ld a,(hl)
+    inc hl
+    ld ($4003),a
+    nop
+    nop
+    jr .doneport
+.wait:
+    ld a,(hl)
+    inc hl
+    inc hl
+    ld (wait_counter),a
+    jr .doneport
+
+.doneport:
+    inc hl
+    ld (song_cursor),hl
+    ret
+
+.table_loop:
+    ld          de,song_buffer         ; The address of the current song
+    ld          (song_cursor),de
+    ret
+
+play_fx_jump:
+    push        af
+
+    ld          a,$F0
+    ld          ($7F11),a
+    nop
+    nop
+    nop
+    pop         af
+    ret
+
+stop_fx_jump:
+    push        af
+
+    ld          a,$FF
+    ld          ($7F11),a
+    nop
+    nop
+    nop
+    pop         af
+    ret
+
+play_fx_coin:
+    push        af
+    push        de
+    push        bc
+
+    ld          de,(fx1_pointer)
+    ld          hl,fx1_wait
+    ld          bc,(fx1_base)
+    call        p_fx
+    ld          (fx1_pointer),de
+
+    pop         bc
+    pop         de
+    pop         af
+    ret
+
+play_fx_death:
+    push        af
+    push        de
+    push        bc
+
+    ld          de,(fx2_pointer)
+    ld          hl,fx2_wait
+    ld          bc,(fx2_base)
+    call        p_fx
+    ld          (fx2_pointer),de
+
+    pop         bc
+    pop         de
+    pop         af
+    ret
+
+play_fx_object:
+    push        af
+    push        de
+    push        bc
+
+    ld          de,(fx3_pointer)
+    ld          hl,fx3_wait
+    ld          bc,(fx3_base)
+    call        p_fx
+    ld          (fx3_pointer),de
+
+    pop         bc
+    pop         de
+    pop         af
+    ret
+
+play_fx_coffee:
+    push        af
+    push        de
+    push        bc
+
+    ld          de,(fx4_pointer)
+    ld          hl,fx4_wait
+    ld          bc,(fx4_base)
+    call        p_fx
+    ld          (fx4_pointer),de
+
+    pop         bc
+    pop         de
+    pop         af
+    ret
+
+
+; p_fx(de = fx1_pointer. Returns de=new pointer, hl=fx1_wait, bc = base to reset to)
+;   returns de = updated pointer
+p_fx:
+    push        af
+    push        bc
+
+    ld          a,(hl)         ; fxN_wait
+    cp          0
+    jr          nz,fx_skip
+
+    ld          a,(de)
+    inc         de
+
+    cp          3
+    jr          nz,.1
+
+    ; Play sound.
+    ld          a,(de)
+    inc         de
+    ld          ($7F11),a
+    ld          a,(de)
+    cp          $ff         ; If the next byte is not 0xFF, then that was a latch command. Send the next byte
+    jr          z,.3
+    ld          ($7F11),a
+    jr          .3
+.1: cp          2
+    jr          nz,.2
+    ; Wait
+    ld          a,(de)
+    inc         de
+    ld          (hl),a          ; fxN_wait
+    jr          .3
+.2: inc         de
+    cp          $FF
+    jr          nz,.3
+    ; End
+    ld          a,$9F
+    ld          ($7F11),a
+    ld          a,$BF
+    ld          ($7F11),a
+    ld          a,$DF
+    ld          ($7F11),a
+
+    push        bc                  ; bc was passed in as the base pointer for fx
+    pop         de                  ; save into de so we can return the pointer
+
+    ld          hl,z80_command            ; The address of the command sent from m68k.
+    ld          a,(hl)
+    and         $3
+    ld          (hl),a
+    jr          fx_skip
+.3:
+    inc         de
+    inc         de
+fx_skip:
+    pop         bc
+    pop         af
+    ret
+
+vgm_copy:
+.1: ld          a,(hl)
+    ld          (bc),a
+    push        af
+    inc         hl
+    inc         bc
+    ld          a,(hl)
+    ld          (bc),a
+    inc         hl
+    inc         bc
+    ld          a,(hl)
+    ld          (bc),a
+    inc         hl
+    inc         bc
+    ld          a,(hl)
+    ld          (bc),a
+    inc         hl
+    inc         bc
+    pop         af
+    cp          $ff
+    jr          nz,.1
+    ret
+
+
+; load_m68_address (hl=pointer to the pointer. Returns hl)
+load_m68_address:
+    ld          a,(hl)
+    inc         hl
+    ld          d,a
+    ld          a,(hl)
+    ld          e,a
+    ld          hl,$8000
+    add         hl,de
+    ret
+
+fx1_pointer:    dc.w  0; coin
+fx1_wait:       dc.b  0
+fx2_pointer:    dc.w  0; death
+fx2_wait:       dc.b  0
+fx3_pointer:    dc.w  0; adrenaline/mushroom/speed
+fx3_wait:       dc.b  0
+fx4_pointer:    dc.w  0; coffee
+fx4_wait:       dc.b  0
+fx1_base:       dc.w  0
+fx2_base:       dc.w  0
+fx3_base:       dc.w  0
+fx4_base:       dc.w  0
+wait_counter:   dc.b  0
+song_last_state: dc.b 0
+song_cursor     dc.w 0
+
+    section .bss
+z80_command:   dc.b 0
+z80_song_number: dc.b 0
+fx_buffer:     ds.b 2048
+song_buffer:   ds.b 4096
+

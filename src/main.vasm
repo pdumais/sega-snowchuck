@@ -1,0 +1,880 @@
+; Snowchuck
+; Patrick Dumais
+; No AI-generated code here
+;
+
+    include defines.vasm
+
+    section .text
+ 
+    xref    vdp_init
+    xref    vdp_load_palette
+    xref    vdp_load_tile
+    xref    graphx_load_level_palette
+    xref    graphx_load_level_tiles
+
+    include interrupts.vasm
+
+; ##########################################################################################
+; # Entry point
+; ##########################################################################################
+START:
+    CLI
+
+    ; init TMSS. Get version number (lower 4 bits at address 00A10001) and skip if 0
+    move.b      $00A10001,d0
+    andi.b      #$0F,d0
+    beq.s       .1
+    move.l      #'SEGA',$00A14000
+.1:
+
+    bsr         sram_init
+    bsr         ram_init
+    bsr         vdp_init
+    bsr         sound_init
+
+    ; Init controller
+    move.b      #$40, (ADDR_CONTROLLER1_CTRL)
+    move.b      #$40, (ADDR_CONTROLLER1_DATA)
+
+    ; move.l #7,RAM_LEVEL_NUMBER
+    ; move.l #$14,RAM_LAST_TOTAL_COINS
+    ;move.l #0,d0
+    ;bsr sram_save_game ; TODO DUMAIS
+
+    move.l      #0,d7                           ; Load level 0 before showing main menu. Because of the init stuff that we need
+    bsr         change_level                    ; Initialize level
+    bsr         main_menu                       ; Load main menu. returns d7 = chosen option
+    cmp.l       #0,d7                           ; Option 0 - New Game
+    beq         .new_game
+    ; d7 is game slot index+1. Invoke sram_load_game with d0 = game slot index
+    move.l      d7,d0
+    sub.l       #1,d0
+    bsr         sram_load_game                  ; Returns d1=coins count, d2 = level number
+    move.w      d1,RAM_TOTAL_COINS
+    move.l      d2,d7
+    bra         .load_game
+
+.new_game:
+    move.w      #0,RAM_TOTAL_COINS              ; reset coin count
+    move.l      #0,d7                           ; level 0
+    ifd DEBUG_MODE
+    move.l      #0,d7                           ; level override in debug mode
+    endc
+.load_game:
+    bsr         change_level                    ; Initialize level
+
+    bsr         game_loop
+
+; ##########################################################################################
+; # Main Menu
+; # Returns d7 = chosen menu option
+; ##########################################################################################
+main_menu:
+    bsr         sound_stop_song
+    WAIT_SYNC 2
+    move.l      #4,d0                           ; 4 = intro song
+    bsr         sound_start_song
+    move.l      #0,d7
+    move.l      #0,d6
+
+update_menu:
+    lea.l       menu_str1,a0
+    move.l      d6,d2
+    lsl.l       #4,d2
+    move.b      #" ",(a0,d2)
+    move.l      d7,d2
+    lsl.l       #4,d2
+    move.b      #">",(a0,d2)
+    move.l      d7,d6
+
+    move.l      #14,d2
+    move.l      #8,d3
+    bsr         write_string
+    add.l       #16,a0
+    add.l       #1,d3
+    bsr         write_string
+    add.l       #16,a0
+    add.l       #1,d3
+    bsr         write_string
+    add.l       #16,a0
+    add.l       #1,d3
+    bsr         write_string
+
+    move.l      #$FFFF,d2
+.1: nop
+    nop
+    dbra        d2,.1
+
+main_menu_loop:
+    cmp.b       #1,RAM_VSYNC_TICK
+    bne         main_menu_loop
+    move.b      #0,RAM_VSYNC_TICK
+    move.b      (RAM_BUTTONS),d2
+
+.check_move_down:
+    btst        #1,d2
+    bne         .check_move_up
+    add.l       #1,d7
+    and.l       #3,d7
+    bra         update_menu
+
+.check_move_up:
+    btst        #0,d2
+    bne         .check_button_b
+    sub.l       #1,d7
+    and.l       #3,d7
+    bra         update_menu
+
+.check_button_b:
+    btst        #4,d2
+    bne         .no_buttons
+    rts
+.no_buttons:
+
+    bra         main_menu_loop
+
+    section .data
+menu_str1:  dc.b "  New Game     ",0
+menu_str2:  dc.b "  Load Game 1  ",0
+menu_str3:  dc.b "  Load Game 2  ",0
+menu_str4:  dc.b "  Load Game 3  ",0
+    ALIGN(2)
+    section .text
+; ##########################################################################################
+; # Save Menu
+; # Returns d7 = chosen menu option
+; ##########################################################################################
+save_menu:
+    movem.l     a0/d0-d6,-(sp)
+    move.l      #0,d7
+    move.l      #0,d6
+
+saveupdate_menu:
+
+    lea.l       savemenu_str1,a0
+    move.b      #" ",00(a0)
+    move.b      #" ",16(a0)
+    move.b      #" ",32(a0)
+    move.b      #" ",48(a0)
+
+    move.l      d7,d2
+    lsl.l       #4,d2
+    move.b      #">",(a0,d2)
+    move.l      d7,d6
+
+    move.l      #14,d2
+    move.l      #8,d3
+    bsr         write_string
+    add.l       #16,a0
+    add.l       #1,d3
+    bsr         write_string
+    add.l       #16,a0
+    add.l       #1,d3
+    bsr         write_string
+    add.l       #16,a0
+    add.l       #1,d3
+    bsr         write_string
+
+    move.l      #$AFFF,d2
+.1: nop
+    nop
+    dbra        d2,.1
+
+save_menu_loop:
+    cmp.b       #1,RAM_VSYNC_TICK
+    bne         save_menu_loop
+    move.b      #0,RAM_VSYNC_TICK
+    move.b      (RAM_BUTTONS),d2
+
+.check_move_down:
+    btst        #1,d2
+    bne         .check_move_up
+    add.l       #1,d7
+    and.l       #3,d7
+    bra         saveupdate_menu
+
+.check_move_up:
+    btst        #0,d2
+    bne         .check_button_b
+    sub.l       #1,d7
+    and.l       #3,d7
+    bra         saveupdate_menu
+
+.check_button_b:
+    btst        #4,d2
+    bne         saveupdate_menu
+
+meow:    
+    bsr         write_clear_screen
+
+    cmp.l       #0,d7
+    beq         .cancel
+
+    sub         #1,d7
+    move.l      d7,d0
+    bsr         sram_save_game
+
+.cancel:
+    movem.l     (sp)+,a0/d0-d6
+    rts
+
+    section .data
+savemenu_str1:  dc.b "  Cancel       ",0
+savemenu_str2:  dc.b "  Save Game 1  ",0
+savemenu_str3:  dc.b "  Save Game 2  ",0
+savemenu_str4:  dc.b "  Save Game 3  ",0
+    ALIGN(2)
+    section .text
+
+; ##########################################################################################
+; # Main loop
+; ##########################################################################################
+game_loop:
+    cmp.b       #1,RAM_VSYNC_TICK
+    bne         .skip_vsync_scheduled_stuff
+    move.b      #0,RAM_VSYNC_TICK
+
+    move.w      RAM_ADRENALINE,d1
+    cmp.w       #0,d1
+    bls         .after_adrenaline_dec
+    sub.w       #1,d1
+    move.w      d1, RAM_ADRENALINE
+.after_adrenaline_dec:
+
+    move.w      RAM_H2,d1
+    cmp.w       #0,d1
+    bls         .after_h2_dec
+    sub.w       #1,d1
+    move.w      d1, RAM_H2
+.after_h2_dec:
+
+    ; Decrease death timeout if needed
+    move.w      RAM_DEATH_RESET_COUNT,d1
+    cmp.w       #0,d1
+    bls         .after_death_dec
+    sub.w       #1,d1
+    move.w      d1, RAM_DEATH_RESET_COUNT
+.after_death_dec:
+
+    ; Decrease coffee level
+    move.w      RAM_COFFEE_LEVEL,d1
+    cmp.w       #0,d1
+    bls         .after_coffee_dec
+    sub.w       #1,d1
+    move.w      d1, RAM_COFFEE_LEVEL
+.after_coffee_dec:
+
+    move.w      RAM_ANIM_TICK,d1
+    add.w       #1,d1
+    move.w      d1,RAM_ANIM_TICK
+
+    move.b      RAM_BUTTONS+1,d2
+    btst        #5,d2
+    bne         .check_other_set_of_buttons
+    bsr         save_menu
+
+
+.check_other_set_of_buttons:
+    ; Check buttons
+    move.b      (RAM_BUTTONS),d2
+
+    cmp.w       #1,RAM_IS_DEAD
+    beq         .check_button_b
+
+.check_move_down:
+    ifd DEBUG_MODE
+    btst        #1,d2
+    bne         .check_move_up
+    move.l      RAM_LEVEL_NUMBER,d7
+    add.w       #1,d7
+    bsr         change_level
+    bra         game_loop
+    endc
+
+.check_move_up:
+    btst        #0,d2
+    bne         .check_move_right
+.check_move_right:
+    btst        #3,d2
+    bne         .check_move_left
+    move.w      RAM_HERO_ABSOLUTE_X,d0
+    move.w      RAM_HERO_Y,d1
+    move.l      #CHUCK_MOVE_SPEED,d3
+    cmp.w       #0,RAM_ADRENALINE
+    beq         .no_adrenaline1
+    lsl.w       #1,d3
+.no_adrenaline1:
+    add.w       d3,d0
+    bsr         graphx_check_block_colision     ; (d0=x, d1=y)
+    btst        #3,d6
+    bne         .check_move_left
+    move.l      d3,d1
+    bsr         graphx_move_hero 
+
+.check_move_left:
+    btst        #2,d2
+    bne         .check_button_b
+
+    move.w      RAM_HERO_ABSOLUTE_X,d0
+    move.w      RAM_HERO_Y,d1
+    move.l      #CHUCK_MOVE_SPEED,d3
+    cmp.w       #0,RAM_ADRENALINE
+    beq         .no_adrenaline2
+    lsl.w       #1,d3
+.no_adrenaline2:
+    sub.w       #12,d0      ; TODO. Not sure why I need to remove 12 here.
+    sub.w       d3,d0
+    bsr         graphx_check_block_colision     ; (d0=x, d1=y)
+    btst        #3,d6
+    bne         .check_button_b
+    move.l      #0,d1
+    sub.w       d3,d1
+    bsr         graphx_move_hero 
+
+.check_button_b:
+    btst        #4,d2
+    bne         .no_buttons
+
+    ; Restart current level if dead    
+    cmp.w       #1,RAM_IS_DEAD
+    bne         .no_buttons
+    cmp.w       #0,RAM_DEATH_RESET_COUNT
+    bne         .no_buttons
+
+    move.l      RAM_LEVEL_NUMBER,d7
+    bsr         change_level
+    bra         game_loop
+.no_buttons:
+
+    cmp.w       #1,RAM_IS_DEAD
+    beq         .skip_stuff_because_dead
+
+    ; Collision detection
+    bsr         graphx_get_sprite_colision
+    btst        #8,d0
+    beq         .check_object_collision
+    bsr         bad_guy_collision
+.check_object_collision:
+    btst        #9,d0
+    beq         .collision_check_done
+    bsr         object_collision
+
+.collision_check_done:
+
+    ; Gravity
+    move.l      RAM_GRAVITY_STATE,a0
+    jsr         (a0)
+
+    ; Check coffee level
+    move.w      RAM_COFFEE_LEVEL,d1
+    cmp.w       #0,d1
+    bhi         .after_coffee_check
+    bsr         make_die
+    bra         game_loop
+
+.after_coffee_check:
+
+
+.skip_stuff_because_dead:
+
+    ; Bad guys
+    move.w      RAM_ANIM_TICK,d1
+    btst        #2,d1                   ; slow down bad guys
+    beq         .no_move_bad_guys
+    bsr         graphx_move_bad_guys
+.no_move_bad_guys:
+
+    ; Reload sprites
+    CLI
+    bsr         graphx_reset_sprites_workbuffer
+    bsr         graphx_load_bad_guys        
+    bsr         graphx_load_objects         
+    bsr         graphx_load_hero            ; Needs to be the last sprite for collision to work
+    bsr         write_status
+    ifd DEBUG_MODE
+    bsr         write_block_count
+    endc
+    STI
+
+.skip_vsync_scheduled_stuff:
+
+    bra         game_loop
+
+
+
+; ##########################################################################################
+; # bad_guy_collision
+; ##########################################################################################
+bad_guy_collision:
+    bsr         make_die
+    rts
+
+; ##########################################################################################
+; # object_collision
+; ##########################################################################################
+object_collision:
+    move.w      RAM_COIN_ID,d1
+    cmp.b       d1,d0
+    beq         .is_coin
+    move.w      RAM_DOOR_ID,d1
+    cmp.b       d1,d0
+    beq         .is_door
+    move.w      RAM_COFFEE_ID,d1
+    cmp.b       d1,d0
+    beq         .is_coffee
+    move.w      RAM_SPEED_ID,d1
+    cmp.b       d1,d0
+    beq         .is_adrenaline
+    move.w      RAM_H2_ID,d1
+    cmp.b       d1,d0
+    beq         .is_h2
+    move.w      RAM_KEY_ID,d1
+    cmp.b       d1,d0
+    beq         .is_key
+    move.w      RAM_MUSHROOM_ID,d1
+    cmp.b       d1,d0
+    beq         .is_mushroom
+    
+    bra         .exit_object_collision
+.is_coin:
+    ; It's a coin.
+    move.w      #1,d1
+    bsr         sound_play_fx       ; 1- Play FX
+
+    add.w       #1,RAM_TOTAL_COINS  ; 2- increment coin count
+
+    lsr.l       #8,d0               ; 3- Remove coin from map
+    lsr.l       #8,d0
+    mulu.w      #6,d0
+    move.l      RAM_OBJ_TABLE,a0
+    add         d0,a0
+    move.w      4(a0),d0
+    bset        #8,d0                          ; move it offscreen. It will go over 256
+    move.w      d0,4(a0)
+    bra         .exit_object_collision
+
+.is_coffee:
+    move.w      #4,d1
+    bsr         sound_play_fx               ; 1- Play FX
+
+    move.w      #4096,RAM_COFFEE_LEVEL    ; 2- refill warmth
+
+    lsr.l       #8,d0                       ; 3- Remove from map
+    lsr.l       #8,d0
+    mulu.w      #6,d0
+    move.l      RAM_OBJ_TABLE,a0
+    add         d0,a0
+    move.w      4(a0),d0
+    bset        #8,d0                          ; move it offscreen. It will go over 256
+    move.w      d0,4(a0)
+    bra         .exit_object_collision
+    
+.is_adrenaline:
+    move.w      #3,d1
+    bsr         sound_play_fx               ; 1- Play FX
+
+    move.w      #(60*20),RAM_ADRENALINE             ; 20 seconds
+
+    lsr.l       #8,d0                       ; 3- Remove from map
+    lsr.l       #8,d0
+    mulu.w      #6,d0
+    move.l      RAM_OBJ_TABLE,a0
+    add         d0,a0
+    move.w      4(a0),d0
+    bset        #8,d0                          ; move it offscreen. It will go over 256
+    move.w      d0,4(a0)
+    bra         .exit_object_collision
+    
+.is_h2:
+    move.w      #3,d1
+    bsr         sound_play_fx               ; 1- Play FX
+
+    move.w      #(60*20),RAM_H2             ; 20 seconds
+
+    lsr.l       #8,d0                       ; 3- Remove from map
+    lsr.l       #8,d0
+    mulu.w      #6,d0
+    move.l      RAM_OBJ_TABLE,a0
+    add         d0,a0
+    move.w      4(a0),d0
+    bset        #8,d0                          ; move it offscreen. It will go over 256
+    move.w      d0,4(a0)
+    bra         .exit_object_collision
+    
+.is_mushroom:
+    move.w      #3,d1
+    bsr         sound_play_fx               ; 1- Play FX
+
+    PUSH        a0
+    move.l      #250,a0                   ; mess up the palettes. That's just a random value
+    move.l      #0,d1                   ; Palette 1
+    bsr         vdp_load_palette
+    add         #32,a0
+    move.l      #1,d1                   ; Palette 1
+    bsr         vdp_load_palette
+    add         #32,a0
+    move.l      #2,d1                   ; Palette 1
+    bsr         vdp_load_palette
+    add         #32,a0
+    move.l      #3,d1                   ; Palette 1
+    bsr         vdp_load_palette
+    POP         a0
+
+
+    lsr.l       #8,d0                       ; 3- Remove from map
+    lsr.l       #8,d0
+    mulu.w      #6,d0
+    move.l      RAM_OBJ_TABLE,a0
+    add         d0,a0
+    move.w      4(a0),d0
+    bset        #8,d0                          ; move it offscreen. It will go over 256
+    move.w      d0,4(a0)
+    bra         .exit_object_collision
+    
+.is_key:
+    move.w      #3,d1
+    bsr         sound_play_fx               ; 1- Play FX
+
+    move.w      RAM_KEY_COUNT,d1
+    sub.w       #1,d1
+    move.w      d1,RAM_KEY_COUNT
+
+    lsr.l       #8,d0                       ; 3- Remove from map
+    lsr.l       #8,d0
+    mulu.w      #6,d0
+    move.l      RAM_OBJ_TABLE,a0
+    add         d0,a0
+    move.w      4(a0),d0
+    bset        #8,d0                          ; move it offscreen. It will go over 256
+    move.w      d0,4(a0)
+    bra         .exit_object_collision
+    
+.is_door:
+    cmp.w       #0,RAM_KEY_COUNT
+    bne         .exit_object_collision
+    move.l      RAM_LEVEL_NUMBER,d7
+    add.w       #1,d7
+    bsr         change_level
+    bra         .exit_object_collision
+
+.exit_object_collision:
+    rts
+
+; ##########################################################################################
+; # make_die
+; ##########################################################################################
+make_die:
+    ifd DEBUG_MODE
+    rts
+    endc
+
+    movem.l     a0/d0-d1,-(sp)
+
+    move.w      #(2*60),RAM_DEATH_RESET_COUNT
+
+    bsr         sound_stop_song
+
+    move.w      #1,RAM_IS_DEAD
+    move.w      #0,RAM_ANIM_TICK            ; so that dead animation starts at frame 0. But this will create a glitch on other anims.
+    move.w      #2,d1
+    bsr         sound_play_fx
+
+    bsr         write_game_over
+
+    move.w      RAM_LAST_TOTAL_COINS,d0
+    move.w      d0,RAM_TOTAL_COINS
+
+    movem.l     (sp)+,a0/d0-d1
+    rts
+
+
+; ##########################################################################################
+; # change_level(d7=level)
+; ##########################################################################################
+change_level:
+    movem.l     a0/d0-d1,-(sp)
+
+    cmp.l       #34,d7
+    blo         .level_ok
+    move.l      #0,d7
+.level_ok:
+
+    move.l      d7,RAM_LEVEL_NUMBER
+
+    bsr         sound_stop_song
+
+    CLI
+    move.l      #$70000003, ADDR_VDP_CTRL       ; Sprite base
+.2: move.w      #0, ADDR_VDP_DATA
+    move.w      #0, ADDR_VDP_DATA
+    move.w      #0, ADDR_VDP_DATA
+    move.w      #0, ADDR_VDP_DATA
+
+    ; Clear backbuf and PlaneB
+    lea         RAM_BACKBUF,a0
+    move.l      #2048-1,d0
+    move.l      #$60000003, ADDR_VDP_CTRL       ; plane B base
+.1: move.w      #0, ADDR_VDP_DATA
+    move.w      #0,(a0)+
+    dbra        d0,.1
+
+    ; Clear PlaneA (window)
+    lea         RAM_WINDOW_BACKBUF,a0
+    move.l      #2048-1,d0
+    move.l      #$40000003, ADDR_VDP_CTRL       ; plane A base
+.clear_planea_loop:
+    move.w      #0, ADDR_VDP_DATA
+    move.w      #0,(a0)+
+    dbra        d0,.clear_planea_loop
+
+    bsr         graphx_init_level
+    bsr         graphx_load_level_palette
+    bsr         graphx_load_level_background
+    bsr         graphx_load_level_tiles
+    bsr         write_load_font
+    bsr         graphx_load_level_ground
+
+    bsr         write_clear_game_over       ; This has to be done AFTER loading font since indexes change per level
+    move.w      RAM_TOTAL_COINS,d0
+    move.w      d0,RAM_LAST_TOTAL_COINS
+
+    lea         handle_state_stable,a0
+    move.l      a0,RAM_GRAVITY_STATE
+
+    move.w      d7,d0
+    and.w       #3,d0                       ; we have 4 songs only
+    bsr         sound_start_song
+
+    move.w      RAM_OBJ_COUNT,d1
+    sub.w       #1,d1  
+    move.l      RAM_OBJ_TABLE,a0
+.obj_rst_loop: 
+    move.w      4(a0),d0
+    bclr        #8,d0                          ; Reset its hidden state
+    move.w      d0,4(a0)
+    add.l       #6,a0
+    dbra        d1,.obj_rst_loop
+
+
+    move.w      #4096,RAM_COFFEE_LEVEL    ; About 68 seconds. Will decrement on vblank (60hz)
+    move.w      #0,RAM_H2
+    move.w      #0,RAM_ADRENALINE
+    move.w      #0,RAM_IS_DEAD
+    STI
+    movem.l     (sp)+,a0/d0-d1
+    rts
+
+
+; ##########################################################################################
+; # INT_HSYNC - Interrupt handler
+; ##########################################################################################
+INT_HSYNC:
+    nop
+    rte
+
+; ##########################################################################################
+; # INT_VSYNC - Interrupt handler
+; ##########################################################################################
+INT_VSYNC:
+    movem.l     d1,-(sp)
+
+    move.b      #1,RAM_VSYNC_TICK
+
+    move.b      #$40, (ADDR_CONTROLLER1_DATA)
+    nop                 
+    nop
+    nop
+    nop
+    move.b      (ADDR_CONTROLLER1_DATA), d1
+    and.b       #%111111,d1     ; C/B/right/left/down/up
+    move.b      d1,(RAM_BUTTONS)
+
+    move.b      #$00, (ADDR_CONTROLLER1_DATA)
+    nop                 
+    nop
+    nop
+    nop
+    move.b      (ADDR_CONTROLLER1_DATA), d1
+    and.b       #%111111,d1     ; start/A/0/0/down/up
+    move.b      d1,(RAM_BUTTONS+1)
+    
+    bsr         graphx_update_sprites
+    bsr         graphx_update_background
+    bsr         graphx_update_window
+    bsr         graphx_animate_water
+
+    movem.l     (sp)+,d1
+    rte
+
+
+; ##########################################################################################
+; # setup_jumping
+; ##########################################################################################
+setup_jumping:
+    movem.l     a0/d1,-(sp)
+
+    clr.l       d1
+    move.w      RAM_HERO_Y,d1
+    sub.w       #JUMP_HEIGHT,d1
+    bcc         jump_not_negative      
+    clr.w       d1
+jump_not_negative:
+    cmp.w       #0,RAM_H2
+    beq         jump_not_h2
+    clr.w       d1
+jump_not_h2:
+    move.w      d1,RAM_MAX_JUMP
+    lea         handle_state_jumping,a0
+    move.l      a0,RAM_GRAVITY_STATE
+
+    move.w      #1,d1
+    bsr         sound_play_jump
+
+    movem.l     (sp)+,a0/d1
+    rts
+
+; ##########################################################################################
+; # handle_state_stable
+; ##########################################################################################
+handle_state_stable:
+    movem.l     a0/d0-d1/d6,-(sp)
+
+    move.w      #1,was_stable
+    ; Check if falling
+    clr.l       d0
+    clr.l       d1
+    move.w      RAM_HERO_ABSOLUTE_X,d0
+    move.w      RAM_HERO_Y,d1
+    add.w       #1,d1
+    bsr         graphx_check_block_colision        ; (d0=x, d1=y)
+    btst        #1,d6
+    bne         stable_not_falling
+
+    move.w      #FALL_SPEED_START,RAM_FALL_RATE
+    lea         handle_state_falling,a0
+    move.l      a0,RAM_GRAVITY_STATE
+    bra         exit_stable
+
+stable_not_falling:
+
+    ; Check if starting to jump
+    btst        #5,RAM_BUTTONS                   ; "C" button. "d" on keyboard with blastem
+    bne         exit_stable
+
+    bsr         setup_jumping
+
+exit_stable:
+    movem.l     (sp)+,a0/d0-d1/d6
+    rts
+
+
+
+; ##########################################################################################
+; # handle_state_jumping
+; ##########################################################################################
+handle_state_jumping:
+    movem.l     a0/d0-d1/d6,-(sp)
+
+    move.w      #0,was_stable
+
+    ; Check if button is released
+    btst        #5,RAM_BUTTONS                   ; "C" button. "d" on keyboard with blastem
+    bne         not_jumping_anymore
+
+    ; Check if max height reached
+    clr.l       d0
+    clr.l       d1
+    move.w      RAM_MAX_JUMP,d0
+    move.w      RAM_HERO_Y,d1
+    cmp.w       d0,d1               ; If reached max jump, stop going up
+    blt         not_jumping_anymore
+    
+    ; Check if celing is hit
+    clr.l       d0
+    move.w      RAM_HERO_ABSOLUTE_X,d0
+    sub.w       #(JUMP_DELTA-1),d1
+    bsr         graphx_check_block_colision        ; (d0=x, d1=y)
+    btst        #3,d6
+    bne         not_jumping_anymore
+
+    ; Fallthrough logic. Jumping
+    move.w      #JUMP_DELTA,d1
+    sub.w       d1,RAM_HERO_Y
+    bra         exit_jumping
+
+not_jumping_anymore:
+    move.w      #FALL_SPEED_START,RAM_FALL_RATE
+    lea         handle_state_falling,a0
+    move.l      a0,RAM_GRAVITY_STATE
+    
+    move.w      #0,d1
+    bsr         sound_play_jump
+
+exit_jumping:
+    movem.l     (sp)+,a0/d0-d1/d6
+    rts
+
+; ##########################################################################################
+; # handle_state_falling
+; ##########################################################################################
+handle_state_falling:
+    movem.l     a0/d0-d2/d6,-(sp)
+
+    ; Check if starting to jump
+    btst        #5,RAM_BUTTONS                   ; "C" button. "d" on keyboard with blastem
+    bne         .not_jumping
+    cmp.w       #1,was_stable
+    bne         .not_jumping
+    bsr         setup_jumping
+.not_jumping
+
+    move.w      RAM_FALL_RATE,d2
+    cmp.w       #3,d2
+    bhs         .1
+    add.w       #1,RAM_FALL_RATE
+.1:
+    clr.l       d0
+    clr.l       d1
+    move.w      RAM_HERO_ABSOLUTE_X,d0
+    move.w      RAM_HERO_Y,d1
+    add.w       #24,d1
+    bsr         graphx_check_ground        ; (d0=x, d1=y)
+
+    move.l      d6,d0
+    sub.w       d1,d6                       ; how far we are we from ground
+    cmp.w       d2,d6
+    ble         not_falling_anymore
+
+    add.w       d2,RAM_HERO_Y
+    bra         exit_falling
+
+not_falling_anymore:
+    cmp         #220,d0
+    bhs         .will_die
+    lsr.l       #8,d6       ; Check if dangerous tile
+    lsr.l       #8,d6
+    mulu.w      #6,d6
+    move.l      RAM_LEVEL_REF,a0
+    add.l       d6,a0
+    move.b      1(a0),d6    ; Get the flag for that sprite
+    btst        #0,d6
+    beq         .wont_die
+.will_die:
+    bsr         make_die
+.wont_die:
+    sub.w       #24,d0
+    move.w      d0,RAM_HERO_Y
+    lea         handle_state_stable,a0
+    move.l      a0,RAM_GRAVITY_STATE
+
+exit_falling:
+    movem.l     (sp)+,a0/d0-d2/d6
+    rts
+
+; ##########################################################################################
+    section .data
+    ALIGN(2)
+was_stable:         dc.w 0
+RAM_VSYNC_TICK:     dc.b 0
+RAM_DUMMY:          dc.b 0

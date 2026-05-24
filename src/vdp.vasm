@@ -1,0 +1,272 @@
+; Snowchuck
+; Patrick Dumais
+; No AI-generated code here
+;
+
+; VRAM layout: https://www.smspower.org/Development/VRAMMemoryMap
+; VDP registers: https://segaretro.org/Sega_Mega_Drive/VDP_registers
+
+; To write to a vram address, the command is: (https://segaretro.org/Sega_Mega_Drive/VDP_general_usage)
+; 31-30: CD1,CD0
+; 30-16: A13-A0
+; 15-8: 0
+; 7-4: CD5-CD2
+; 3-2: 0
+; 1-0: A15,A14
+
+;Memory Address	Byte Command
+;$0000	$40000000
+;$1000	$50000000
+;$2000	$60000000
+;$3000	$70000000
+;$4000	$40000001
+;$5000	$50000001
+;$6000	$60000001
+;$7000	$70000001
+;$8000	$40000002
+;$9000	$50000002
+;$A000	$60000002
+;$B000	$70000002
+;$C000	$40000003       Plane A
+;$D000	$50000003
+;$E000	$60000003       Plane B
+;$F000	$70000003       Sprites
+;$FC00	$7C000003
+;$FFFF	$7FFF0003
+
+;Vram Addresses
+;$0000	Pattern definitions
+;$C000	Scroll A Tilemap
+;$E000	Scroll B Tilemap
+;$F000	Sprite Attrib table
+;$FC00	Hscroll Table
+
+; ##########################################################################################
+
+    include defines.vasm
+
+    section .text
+
+; ##########################################################################################
+
+    xdef vdp_init
+    xdef vdp_load_palette
+    xdef vdp_load_tile
+    xdef vdp_start_dma
+    xdef vdp_wait_dma
+
+; ##########################################################################################
+
+; ##########################################################################################
+; # vdp_init
+; ##########################################################################################
+vdp_init:
+    move.l  #$00008014,d1 ; H interrupt on, palettes on
+    move.w  d1,ADDR_VDP_CTRL
+    move.w  #$00008174,ADDR_VDP_CTRL
+    move.l  #$00008230,d1 ; Pattern table for Scroll Plane A at VRAM $C000
+    move.w  d1,ADDR_VDP_CTRL
+    move.l  #$00008300,d1 ; Pattern table for Window Plane at VRAM $0000  (disabled) (bits 1-5 = bits 11-15)
+    move.w  d1,ADDR_VDP_CTRL
+    move.l  #$00008407,d1 ; Pattern table for Scroll Plane B at VRAM $E000 (bits 0-2 = bits 11-15)
+    move.w  d1,ADDR_VDP_CTRL
+    move.l  #$00008578,d1 ; Sprite table at VRAM $F000 (bits 0-6 = bits 9-15)
+    move.w  d1,ADDR_VDP_CTRL
+    move.l  #$00008600,d1 ; Unused
+    move.w  d1,ADDR_VDP_CTRL
+    move.l  #$00008704,d1 ; Background colour - bits 0-3 = colour, bits 4-5 = palette
+    move.w  d1,ADDR_VDP_CTRL
+    move.l  #$00008800,d1 ; Unused
+    move.w  d1,ADDR_VDP_CTRL
+    move.l  #$00008900,d1 ; Unused
+    move.w  d1,ADDR_VDP_CTRL
+    move.l  #$00008AFF,d1 ; Frequency of Horiz. interrupt in Rasters (number of lines travelled by the beam)
+    move.w  d1,ADDR_VDP_CTRL
+    move.l  #$00008B00,d1 ; External interrupts off, V scroll fullscreen H scroll fullscreen
+    move.w  d1,ADDR_VDP_CTRL
+    move.l  #$00008C81,d1 ; Shadows and highlights off, interlace off H40 mode (320 x 224 screen res)
+    move.w  d1,ADDR_VDP_CTRL
+    move.l  #$00008D3F,d1 ; Horiz. scroll table at VRAM $FC00 (bits 0-5)
+    move.w  d1,ADDR_VDP_CTRL
+    move.l  #$00008E00,d1 ; Unused
+    move.w  d1,ADDR_VDP_CTRL
+    move.l  #$00009001,d1 ; Vert. scroll 32, Horiz. scroll 64
+    move.w  d1,ADDR_VDP_CTRL
+    move.l  #$00009100,d1 ; Window Plane X pos 0 left (pos in bits 0-4, left/right in bit 7)
+    move.w  d1,ADDR_VDP_CTRL
+    move.l  #$00009200,d1 ; Window Plane Y pos 0 up(pos in bits 0-4, up/down in bit 7)
+    move.w  d1,ADDR_VDP_CTRL
+
+; CANT DO THIS OUTSIDE OF BLANK
+;    ; Clear Plane A
+;    move.w  #$8174,ADDR_VDP_CTRL
+;    move.w      #$8F01,ADDR_VDP_CTRL
+;    move.w      #$9300,ADDR_VDP_CTRL
+;    move.w      #$9408,ADDR_VDP_CTRL
+;    move.w      #$9780,ADDR_VDP_CTRL
+;    move.l      #$40000083,d1
+;    move.l      d1,ADDR_VDP_CTRL
+;    move.w      #$0000,ADDR_VDP_DATA
+;    bsr         vdp_wait_dma
+;    ; Clear Plane B
+;    bsr         vdp_wait_dma
+;    move.w      #$9300,ADDR_VDP_CTRL
+;    move.w      #$9408,ADDR_VDP_CTRL
+;    move.w      #$9780,ADDR_VDP_CTRL
+;    move.l      #$60000083,d1
+;    move.l      d1,ADDR_VDP_CTRL
+;    move.w      #$0000,ADDR_VDP_DATA
+;    move.w  #$8164,ADDR_VDP_CTRL
+
+    ; Clear HScroll table
+    ;move.w      #$9300,ADDR_VDP_CTRL
+    ;move.w      #$9404,ADDR_VDP_CTRL
+    ;move.w      #$9780,ADDR_VDP_CTRL
+    ;move.l      #$7C000083,d1
+    ;move.l      d1,ADDR_VDP_CTRL
+    ;move.w      #$0000,ADDR_VDP_DATA
+
+    ; Clear entire vram
+    ;move.w      #$93FF,ADDR_VDP_CTRL
+    ;move.w      #$94FF,ADDR_VDP_CTRL
+    ;move.w      #$9780,ADDR_VDP_CTRL
+    ;move.l      #$40000080,d1
+    ;move.l      d1,ADDR_VDP_CTRL
+    ;move.w      #$0000,ADDR_VDP_DATA
+
+    move.w      #$8F02,ADDR_VDP_CTRL
+    rts
+
+; ##########################################################################################
+; # vdp_wait_dma
+; # Waits for DMA transfer to complete
+; ##########################################################################################
+vdp_wait_dma:
+    movem.l     d0,-(sp)
+
+.1: move.w      ADDR_VDP_CTRL,d0
+    btst        #1,d0            ; DMA busy bit
+    bne.s       .1
+
+    movem.l     (sp)+,d0
+    rts
+
+; ##########################################################################################
+; # vdp_start_dma
+; ##########################################################################################
+vdp_start_dma:
+    movem.l     d0-d4/a0,-(sp)
+
+;    move.w  #$8174,ADDR_VDP_CTRL
+
+    bsr         vdp_wait_dma
+
+    lsr.l       #1,d3
+    and.l       #$7FFFFF,d3
+
+    ; Lenght low byte    
+    move.l      #$9300,d1
+    move.w      d0,d2
+    and.w       #$FF,d2
+    or.w        d2,d1
+    move.w      d1,ADDR_VDP_CTRL
+
+    ; Lenght high byte    
+    move.l      #$9400,d1
+    move.w      d0,d2
+    lsr.w       #8,d2
+    and.w       #$FF,d2
+    or.w        d2,d1
+    move.w      d1,ADDR_VDP_CTRL
+
+    move.l      #$9500,d1
+    move.w      d3,d2
+    and.w       #$FF,d2
+    or.w        d2,d1
+    move.w      d1,ADDR_VDP_CTRL
+
+    move.l      #$9600,d1
+    lsr.l       #8,d3
+    move.w      d3,d2
+    and.w       #$FF,d2
+    or.w        d2,d1
+    move.w      d1,ADDR_VDP_CTRL
+
+    move.l      #$9700,d1
+    lsr.l       #8,d3
+    and.w       #$FF,d3
+    or.w        d3,d1
+    move.w      d1,ADDR_VDP_CTRL
+
+    or.l        #$00000080,d4
+    move.l      d4, ADDR_VDP_CTRL 
+;    move.w  #$8164,ADDR_VDP_CTRL
+
+    movem.l     (sp)+,d0-d4/a0
+    rts
+
+
+; ##########################################################################################
+; # vdp_load_palette(a0=palette addr, d1=palette number)
+; ##########################################################################################
+vdp_load_palette:
+    PUSH    d2
+    PUSH    d1
+    PUSH    d0
+    PUSH    a0
+
+    move.w  #$8F02,ADDR_VDP_CTRL
+
+    lsl         #5,d1                   ; multiple tile index by 32 (1 tile = 32 * 4bit)
+    move.l      d1,d0                   ; encode address
+    move.l      #14,d2
+    lsr.l       d2,d1
+    and.w       #$3FFF,d0
+    move.l      #16,d2
+    lsl.l       d2,d0
+    or.l        d1,d0
+    add.l       #$C0000000,d0
+
+    move.l  d0,ADDR_VDP_CTRL ; Set up VDP to write to CRAM address $0000
+    move.l  #15,d0
+.1:
+    move.w  (a0)+,(ADDR_VDP_DATA)
+    dbra    d0,.1
+
+    POP     a0
+    POP     d0
+    POP     d1
+    POP     d2
+    rts
+
+
+; ##########################################################################################
+; # vdp_load_tile(a0=tile addr, d1=tile index)
+; ##########################################################################################
+vdp_load_tile:
+    move.l      d2,-(sp)
+    move.l      d1,-(sp)
+    move.l      d0,-(sp)
+    move.l      a0,-(sp)
+
+    and.l       #$FFFF,d1               ; clear polution of upper word
+    lsl         #5,d1                   ; multiple tile index by 32 (1 tile = 32 * 4bit)
+    move.l      d1,d0                   ; encode address
+    move.l      #14,d2
+    lsr.l       d2,d1
+    and.w       #$3FFF,d0
+    move.l      #16,d2
+    lsl.l       d2,d0
+    or.l        d1,d0
+    add.l       #$40000000,d0
+    move.l      d0,ADDR_VDP_CTRL
+    move.l      #$7,d0
+.1: move.l      (a0)+,ADDR_VDP_DATA
+    dbra        d0,.1
+
+    move.l      (sp)+,a0
+    move.l      (sp)+,d0
+    move.l      (sp)+,d1
+    move.l      (sp)+,d2
+    rts
+

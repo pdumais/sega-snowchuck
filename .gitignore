@@ -1,0 +1,15 @@
+images/chuck.pas
+*.bmp
+images/levels.vasm
+images/sprites.vasm
+src/game.bin
+*.o
+src/map.txt
+toolchain
+*.bak
+*.hex
+images/*.vasm
+sound/*.vasm
+z80.bin
+src/font.vasm
+src/sound.vasm

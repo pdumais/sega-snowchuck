@@ -1,0 +1,126 @@
+INT_VECTOR:
+    dc.l $00FFFFF0        ; Initial SP
+    dc.l START            ; Initial PC
+    dc.l ex2
+    dc.l ex3
+    dc.l ex4
+    dc.l ex5
+    dc.l ex6
+    dc.l ex7
+    dc.l ex8
+    dc.l ex9
+    dc.l exa
+    dc.l exb
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l INT_HSYNC
+    dc.l ERROR
+    dc.l INT_VSYNC
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+    dc.l ERROR
+
+    include rom_header.vasm
+
+ex1:
+        CLI
+        ;move.w  (sp)+,d1
+        ;move.w  (sp)+,d2
+        ;move.w  (sp)+,d3
+        ;move.w  (sp)+,d4
+        ;move.l  (sp)+,d5
+.1:   bra.s .1
+ex2:
+        CLI
+        move.b  #2,d7
+.1:   bra.s .1
+ex3:
+        CLI
+        ;move.w  (sp)+,d1
+        ;move.l  (sp)+,d2
+        ;move.w  (sp)+,d3
+        ;move.w  (sp)+,d4
+        ;move.l  (sp)+,d5
+        move.b  #3,d7
+.1:   bra.s .1
+ex4:
+        CLI
+        move.b  #4,d7
+.1:   bra.s .1
+ex5:
+        CLI
+        move.b  #5,d7
+.1:   bra.s .1
+ex6:
+        CLI
+        move.b  #6,d7
+.1:   bra.s .1
+ex7:
+        CLI
+        move.b  #7,d7
+.1:   bra.s .1
+ex8:
+        CLI
+        move.b  #8,d7
+.1:   bra.s .1
+ex9:
+        CLI
+        move.b  #9,d7
+.1:   bra.s .1
+exa:
+        CLI
+        move.b  #10,d7
+.1:   bra.s .1
+exb:
+        CLI
+        move.b  #11,d7
+.1:   bra.s .1
+
+ERROR:
+        CLI
+    bra.s ERROR
+

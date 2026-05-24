@@ -1,0 +1,186 @@
+    xdef RAM_ADDR_SPRITES      
+    xdef RAM_LAST_SPRITE_INDEX 
+    xdef RAM_VIEWPORT_ABSOLUTE_X         
+    xdef RAM_BACKGROUND_ABSOLUTE_X
+    xdef RAM_BACKBUF           
+    xdef RAM_SCROLL_X          
+    xdef RAM_BAD_GUYS_TABLE    
+    xdef RAM_BAD_GUYS_COUNT    
+    xdef RAM_OBJ_TABLE         
+    xdef RAM_OBJ_COUNT         
+    xdef RAM_BLOCK_TABLE       
+    xdef RAM_BLOCK_COUNT       
+    xdef RAM_BLOCK_END_DOOR    
+    xdef RAM_HERO_ABSOLUTE_X            
+    xdef RAM_HERO_Y            
+    xdef RAM_HERO_SPRITE       
+    xdef RAM_BUTTONS           
+    xdef RAM_GRAVITY_STATE     
+    xdef RAM_MAX_JUMP          
+    xdef RAM_FALL_RATE        
+    xdef RAM_IS_DEAD 
+    xdef RAM_ANIM_TICK
+    xdef RAM_LEVEL_REF
+    xdef RAM_COIN_ID
+    xdef RAM_H2_ID
+    xdef RAM_COFFEE_ID
+    xdef RAM_SPEED_ID
+    xdef RAM_MUSHROOM_ID
+    xdef RAM_KEY_ID
+    xdef RAM_DOOR_ID
+    xdef RAM_WATER_ID
+    xdef RAM_KEY_COUNT
+    xdef RAM_FONT_START
+    xdef RAM_TOTAL_COINS
+    xdef RAM_LEVEL_NUMBER
+    xdef RAM_WINDOW_BACKBUF
+    xdef RAM_LAST_TOTAL_COINS
+    xdef RAM_COFFEE_LEVEL
+    xdef RAM_DEATH_RESET_COUNT
+    xdef RAM_ADRENALINE
+    xdef RAM_H2
+    xdef RAM_VRAM_LOAD_COMMAND
+    xdef RAM_PLANEB_RING_INDEX
+    xdef ram_init
+    xdef sram_init
+    xdef sram_save_game
+    xdef sram_load_game
+; ##########################################################################################
+    include defines.vasm
+
+    section .text
+
+; ##########################################################################################
+; # ram_init
+; ##########################################################################################
+ram_init:
+    lea.l       __data_load,a0
+    lea.l       __data_start,a1
+    lea.l       __data_end,a2
+.1: move.w      (a0)+, (a1)+
+    cmp.l       a2,a1
+    bmi         .1
+
+    lea.l       __bss_start,a1
+    lea.l       __bss_end,a2
+.2: move.w      #0, (a1)+
+    cmp.l       a2,a1
+    bmi         .2
+    rts
+
+; ##########################################################################################
+; # sram_init
+; ##########################################################################################
+sram_init:
+    move.l      #"CHUC",d1
+    move.b      #1,(ADDR_SRAM_CTRL)
+    lea.l       $200001,a0
+    movep.l     0(a0),d0
+    cmp.l       d0,d1
+    beq         .sram_init_done
+
+    movep.l     d1,0(a0)
+    add.l       #8,a0
+    move.l      #(16*4)-1,d1
+    clr.l       d0
+.zero_loop:
+    movep.w     d0,0(a0)
+    add.l       #2,a0
+    dbra        d1,.zero_loop
+
+.sram_init_done:
+    move.b      #0,(ADDR_SRAM_CTRL)
+    rts
+
+; ##########################################################################################
+; # sram_save_game(d0 = game slot)
+; ##########################################################################################
+sram_save_game:
+    movem.l     a0/d0-d1,-(sp)
+
+    move.b      #1,(ADDR_SRAM_CTRL)
+    lea.l       $200001,a0
+    add.l       #1,d0
+    lsl.l       #4,d0                   ; Each save slot is 16bytes
+    add.l       d0,a0
+
+    move.l      RAM_LEVEL_NUMBER, d1
+    move.b      d1,0(a0)
+    move.w      RAM_LAST_TOTAL_COINS, d1
+    move.b      d1,2(a0)
+    
+    move.b      #0,(ADDR_SRAM_CTRL)
+
+    movem.l     (sp)+,a0/d0-d1
+    rts
+
+; ##########################################################################################
+; # sram_load_game(d0 = game slot)
+; # Returns: d1=coins count, d2 = level number
+; ##########################################################################################
+sram_load_game:
+    move.l      #"CHUC",d1
+    move.b      #1,(ADDR_SRAM_CTRL)
+    lea.l       $200001,a0
+    add.l       #1,d0
+    lsl.l       #4,d0                   ; Each save slot is 16bytes
+    add         d0,a0
+
+    clr.l       d1
+    clr.l       d2
+    move.b      0(a0),d2
+    move.b      2(a0),d1
+    
+    move.b      #0,(ADDR_SRAM_CTRL)
+    rts
+
+
+
+; ##########################################################################################
+    section .bss
+    ALIGN(2)
+
+RAM_ADDR_SPRITES:               ds.l 80
+RAM_LAST_SPRITE_INDEX:          dc.w 0
+RAM_VIEWPORT_ABSOLUTE_X:        dc.w 0
+RAM_BACKGROUND_ABSOLUTE_X:      dc.w 0   ; X of the first tile currently loaded in vram
+RAM_BACKBUF:                    ds.w 2048
+RAM_SCROLL_X:                   dc.w 0
+RAM_BAD_GUYS_TABLE:             dc.l 0
+RAM_BAD_GUYS_COUNT:             dc.w 0
+RAM_OBJ_TABLE:                  dc.l 0
+RAM_OBJ_COUNT:                  dc.w 0
+RAM_BLOCK_TABLE:                dc.l 0
+RAM_BLOCK_COUNT:                dc.w 0
+RAM_BLOCK_END_DOOR:             dc.w 0
+RAM_HERO_ABSOLUTE_X:            dc.w 0
+RAM_HERO_Y:                     dc.w 0
+RAM_HERO_SPRITE:                dc.w 1
+RAM_BUTTONS:                    dc.w 0
+RAM_GRAVITY_STATE:              dc.l 0
+RAM_MAX_JUMP:                   dc.w 0
+RAM_FALL_RATE:                  dc.w 0
+RAM_IS_DEAD:                    dc.w 0
+RAM_ANIM_TICK:                  dc.w 0
+RAM_LEVEL_REF:                  dc.l 0
+RAM_COIN_ID:                    dc.w 0
+RAM_H2_ID:                      dc.w 0
+RAM_COFFEE_ID:                  dc.w 0
+RAM_SPEED_ID:                   dc.w 0
+RAM_MUSHROOM_ID:                dc.w 0
+RAM_KEY_ID:                     dc.w 0
+RAM_DOOR_ID:                    dc.w 0
+RAM_WATER_ID:                   dc.w 0
+RAM_KEY_COUNT:                  dc.w 0
+RAM_FONT_START:                 dc.w 0
+RAM_TOTAL_COINS:                dc.w 0
+RAM_LAST_TOTAL_COINS:           dc.w 0
+RAM_LEVEL_NUMBER:               dc.l 0
+RAM_WINDOW_BACKBUF:             ds.w 2048
+RAM_COFFEE_LEVEL:               dc.w 0
+RAM_DEATH_RESET_COUNT:          dc.w 0
+RAM_ADRENALINE:                 dc.w 0
+RAM_H2:                         dc.w 0
+RAM_VRAM_LOAD_COMMAND:          dc.w 0
+RAM_PLANEB_RING_INDEX:          dc.w 0
+
