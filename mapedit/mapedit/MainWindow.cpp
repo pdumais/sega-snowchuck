@@ -7,13 +7,21 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    this->mpMapView = new MapView(this->ui->frame1);
+    QObject::connect(this->mpMapView, &MapView::viewPortChanged,[this](int index)
+    {
+        this->ui->slider->setMaximum(index);
+    });
+
+
+    this->mpMapView->show();
+
     this->mpMapData = new MapData("../../images/levels.json");
     for (int i = 0; i < this->mpMapData->getLevelCount(); i ++)
     {
         this->ui->comboBox->addItem("Level "+QString::number(i+1));
     }
     this->ui->comboBox->setCurrentIndex(0);
-
 }
 
 MainWindow::~MainWindow()
@@ -25,6 +33,12 @@ MainWindow::~MainWindow()
 void MainWindow::on_comboBox_currentIndexChanged(int index)
 {
     int cmax = this->mpMapData->getBlockCount(index);
-    this->ui->mapView->setMap(cmax,this->mpMapData->getGround(index));
+    this->mpMapView->setMap(cmax,this->mpMapData->getGround(index));
+}
+
+
+void MainWindow::on_slider_valueChanged(int value)
+{
+    this->mpMapView->setViewPortStartIndex(value);
 }
 

@@ -1,92 +1,126 @@
 #include "MapView.h"
 #include <QPainter>
 #include <QPaintEvent>
+#include <QLabel>
+#include <QPixmap>
+#include "ClickableQLabel.h"
+#include <QDebug>
+#include "ClickableQLabel.h"
 
-const float zoom = 3.0f;
+const int tileZoom = 3;
+const int numHTiles = 25;
 
 MapView::MapView(QWidget *parent): QWidget{parent}
 {
-    setAutoFillBackground(true);
-    setFixedSize(1*24, (224+(5*24))*zoom);
+    //setAutoFillBackground(true);
+    this->mCurrentViewIndex = 0;
     this-> mSelectedBlock = QPoint(0,0);
+    this->setFixedSize(tileZoom*24*numHTiles,(224+5*(24+2))*tileZoom);
+    this->move(0,0);
+
+    for (int i = 0; i < numHTiles; ++i)
+    {
+        QLabel *label = new QLabel(this);
+        label->setGeometry(i * (24*tileZoom), 0, (24*tileZoom), 224*tileZoom);
+        label->setStyleSheet(
+            "background-color: rgb(0,0,255);"
+            "border: 1px solid black;"
+        );
+
+        this->mColumns.append(label);
+
+        QLabel *labelSlot = new ClickableQLabel(this);
+        labelSlot->setFixedSize(24*tileZoom, (24+2)*5*tileZoom);
+        labelSlot->move(i * (24*tileZoom),(220+4)*tileZoom);
+        labelSlot->setStyleSheet(
+            "background-color: rgb(210,210,210);"
+            "border: 1px solid black;"
+        );
+
+        this->mSlots.append(labelSlot);
+    }
+
 }
 
 void MapView::setMap(int length,QVector<QVector<MapGroundObject>> ground)
 {
     this->mBlockCount = length;
-    setFixedSize(length*24*zoom, (224+(5*24))*zoom);
     this-> ground = ground;
+    this->mCurrentViewIndex = 0;
+    this->_clearWindow();
+    this->_redraw();
+    emit this->viewPortChanged(this->mBlockCount);
 }
 
-void MapView::paintEvent(QPaintEvent *event)
+void MapView::_clearWindow()
 {
-    QWidget::paintEvent(event);
-
-    QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing, false);
-
-    const int w = width();
-    const int h = height();
-
-    // Fill background (optional)
-    painter.fillRect(rect(), Qt::white);
-
-
-    // Draw vertical grid lines every 24 pixels
-    painter.scale(zoom, zoom);
-    QPen gridPen(Qt::black);
-    gridPen.setWidth(1);
-    painter.setPen(gridPen);
-    painter.fillRect(0,0,w-1,224,QColor(0, 0, 0));
-    painter.fillRect(0,224,w-1,h-1,QColor(0xA0, 0xA0, 0xA0));
-    painter.drawRect(0, 0, w - 1, h - 1);
-
-
-    // Now width/height must be converted to logical coords
-    const int logicalW = width() / zoom;
-    const int logicalH = height() / zoom;
-
-    // Draw vertical lines every 24 logical pixels
-    for (int x = 0; x < this->mBlockCount; x ++)
+    for (QWidget *col : mColumns)
     {
-        painter.drawLine(x*24, 0, x*24, logicalH);
-        painter.drawText(x*24,10, QString::number(x));
-        for (int n = 0; n < 5; n++)
+        const auto children = col->findChildren<QLabel*>(QString(), Qt::FindDirectChildrenOnly);
+
+        for (QLabel *child : children)
         {
-            auto mo = ground[x][n];
-            if (mo.y < 200)
-            {
-                painter.drawImage(24*x,mo.y,mo.img);
-            }
-            painter.drawImage(24*x,200+(24*(5-n)),mo.img);
-            painter.drawRect(24*x,200+(24*(5-n)),24,24);
+            delete child;
         }
     }
-
-    QPen selectedPen(Qt::red);
-    selectedPen.setWidth(1);
-    painter.setPen(selectedPen);
-    int x = this-> mSelectedBlock.x();
-    int y = this-> mSelectedBlock.y();
-    auto mo = ground[x][y];
-    if (mo.y < 200)
+    for (QWidget *col : mSlots)
     {
-        painter.drawRect(x*24, mo.y, 24, 24);
+        const auto children = col->findChildren<QLabel*>(QString(), Qt::FindDirectChildrenOnly);
+
+        for (QLabel *child : children)
+        {
+            delete child;
+        }
     }
-
-    painter.drawRect(x*24, 200+(5-y)*24, 24, 24);
 }
 
-void MapView::mousePressEvent(QMouseEvent *event)
+void MapView::_redraw()
 {
-    // Convert screen coords → image coords
-    int x = event->pos().x() / zoom;
-    int y = event->pos().y() / zoom;
+    for (int i = 0; i < this->mColumns.length(); i++)
+    {
 
-    if (x < 0 || y < 224)
-        return;
+        int tileIndex = i + this->mCurrentViewIndex;
+        int maxIndex = ground.length();
+        if (tileIndex >= maxIndex)
+        {
+            continue;
+        }
 
-    this->mSelectedBlock = QPoint(x/24, 5-((y-200)/24));
+        for (int n = 0; n < 5; n++)
+        {
 
-    update(); // trigger repaint
+            auto mo = ground[tileIndex][n];
+            QLabel *tile = new QLabel(this->mColumns[i]);
+            tile->move(0,mo.y*tileZoom);
+            tile->setFixedSize(24*tileZoom, 24*tileZoom);
+            if (mo.y < 200)
+            {
+                tile->setPixmap(QPixmap::fromImage(mo.img.scaled(24*tileZoom,24*tileZoom)));
+            }
+            tile->setStyleSheet("border-left: 1px solid black;");
+            tile->show();
+
+            ClickableQLabel *slot = new ClickableQLabel(this->mSlots[i]);
+            int slotY = (4-n)*24;
+
+            slot->move(0,slotY*tileZoom);
+            slot->setFixedSize(24*tileZoom, 24*tileZoom);
+            slot->setPixmap(QPixmap::fromImage(mo.img.scaled(24*tileZoom,24*tileZoom)));
+            slot->setStyleSheet("border-left: 1px solid black;");
+            slot->show();
+            QObject::connect(slot, &ClickableQLabel::clicked,[this](ClickableQLabel* lbl)
+            {
+                qDebug() << "Click";
+            });
+        }
+    }
 }
+
+void MapView::setViewPortStartIndex(int index)
+{
+    this->mCurrentViewIndex = index;
+    this->_clearWindow();
+    this->_redraw();
+}
+
+

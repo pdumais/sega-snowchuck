@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QWidget>
 #include "MapData.h"
+#include <QLabel>
 
 class MapView : public QWidget
 {
@@ -12,16 +13,23 @@ public:
     explicit MapView(QWidget *parent = nullptr);
 
     void setMap(int lenght, QVector<QVector<MapGroundObject>> ground);
+    void setViewPortStartIndex(int index);
+
 protected:
-    void paintEvent(QPaintEvent *event) override;
-    void mousePressEvent(QMouseEvent *event) override;
 
 private:
     int mBlockCount;
     QVector<QVector<MapGroundObject>> ground;
+    QVector<QLabel*> mColumns;
+    QVector<QLabel*> mSlots;
     QPoint mSelectedBlock;
-signals:
 
+    void _clearWindow();
+    void _redraw();
+    int mCurrentViewIndex;
+
+signals:
+    void viewPortChanged(int index);
 };
 
 #endif // MAPVIEW_H

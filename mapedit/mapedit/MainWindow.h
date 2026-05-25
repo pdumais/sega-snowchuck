@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include "MapData.h"
+#include "MapView.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -19,8 +20,11 @@ public:
 private slots:
     void on_comboBox_currentIndexChanged(int index);
 
+    void on_slider_valueChanged(int value);
+
 private:
     Ui::MainWindow *ui;
     MapData* mpMapData;
+    MapView *mpMapView;
 };
 #endif // MAINWINDOW_H
