@@ -5,6 +5,14 @@
 
     include defines.vasm
 
+    section .data
+    ALIGN(2)
+was_stable:         dc.w 0
+debug1_phrase:      dc.b "debug1",0
+debug2_phrase:      dc.b "debug2",0
+debug3_phrase:      dc.b "debug3",0
+    ALIGN(2)
+
     section .text
  
     xref    vdp_init
@@ -59,173 +67,13 @@ START:
     move.w      #0,RAM_TOTAL_COINS              ; reset coin count
     move.l      #0,d7                           ; level 0
     ifd DEBUG_MODE
-    move.l      #0,d7                           ; level override in debug mode
+    move.l      #11,d7                           ; level override in debug mode
     endc
 .load_game:
     bsr         change_level                    ; Initialize level
 
     bsr         game_loop
 
-; ##########################################################################################
-; # Main Menu
-; # Returns d7 = chosen menu option
-; ##########################################################################################
-main_menu:
-    bsr         sound_stop_song
-    WAIT_SYNC 2
-    move.l      #4,d0                           ; 4 = intro song
-    bsr         sound_start_song
-    move.l      #0,d7
-    move.l      #0,d6
-
-update_menu:
-    lea.l       menu_str1,a0
-    move.l      d6,d2
-    lsl.l       #4,d2
-    move.b      #" ",(a0,d2)
-    move.l      d7,d2
-    lsl.l       #4,d2
-    move.b      #">",(a0,d2)
-    move.l      d7,d6
-
-    move.l      #14,d2
-    move.l      #8,d3
-    bsr         write_string
-    add.l       #16,a0
-    add.l       #1,d3
-    bsr         write_string
-    add.l       #16,a0
-    add.l       #1,d3
-    bsr         write_string
-    add.l       #16,a0
-    add.l       #1,d3
-    bsr         write_string
-
-    move.l      #$FFFF,d2
-.1: nop
-    nop
-    dbra        d2,.1
-
-main_menu_loop:
-    cmp.b       #1,RAM_VSYNC_TICK
-    bne         main_menu_loop
-    move.b      #0,RAM_VSYNC_TICK
-    move.b      (RAM_BUTTONS),d2
-
-.check_move_down:
-    btst        #1,d2
-    bne         .check_move_up
-    add.l       #1,d7
-    and.l       #3,d7
-    bra         update_menu
-
-.check_move_up:
-    btst        #0,d2
-    bne         .check_button_b
-    sub.l       #1,d7
-    and.l       #3,d7
-    bra         update_menu
-
-.check_button_b:
-    btst        #4,d2
-    bne         .no_buttons
-    rts
-.no_buttons:
-
-    bra         main_menu_loop
-
-    section .data
-menu_str1:  dc.b "  New Game     ",0
-menu_str2:  dc.b "  Load Game 1  ",0
-menu_str3:  dc.b "  Load Game 2  ",0
-menu_str4:  dc.b "  Load Game 3  ",0
-    ALIGN(2)
-    section .text
-; ##########################################################################################
-; # Save Menu
-; # Returns d7 = chosen menu option
-; ##########################################################################################
-save_menu:
-    movem.l     a0/d0-d6,-(sp)
-    move.l      #0,d7
-    move.l      #0,d6
-
-saveupdate_menu:
-
-    lea.l       savemenu_str1,a0
-    move.b      #" ",00(a0)
-    move.b      #" ",16(a0)
-    move.b      #" ",32(a0)
-    move.b      #" ",48(a0)
-
-    move.l      d7,d2
-    lsl.l       #4,d2
-    move.b      #">",(a0,d2)
-    move.l      d7,d6
-
-    move.l      #14,d2
-    move.l      #8,d3
-    bsr         write_string
-    add.l       #16,a0
-    add.l       #1,d3
-    bsr         write_string
-    add.l       #16,a0
-    add.l       #1,d3
-    bsr         write_string
-    add.l       #16,a0
-    add.l       #1,d3
-    bsr         write_string
-
-    move.l      #$AFFF,d2
-.1: nop
-    nop
-    dbra        d2,.1
-
-save_menu_loop:
-    cmp.b       #1,RAM_VSYNC_TICK
-    bne         save_menu_loop
-    move.b      #0,RAM_VSYNC_TICK
-    move.b      (RAM_BUTTONS),d2
-
-.check_move_down:
-    btst        #1,d2
-    bne         .check_move_up
-    add.l       #1,d7
-    and.l       #3,d7
-    bra         saveupdate_menu
-
-.check_move_up:
-    btst        #0,d2
-    bne         .check_button_b
-    sub.l       #1,d7
-    and.l       #3,d7
-    bra         saveupdate_menu
-
-.check_button_b:
-    btst        #4,d2
-    bne         saveupdate_menu
-
-meow:    
-    bsr         write_clear_screen
-
-    cmp.l       #0,d7
-    beq         .cancel
-
-    sub         #1,d7
-    move.l      d7,d0
-    bsr         sram_save_game
-
-.cancel:
-    movem.l     (sp)+,a0/d0-d6
-    rts
-
-    section .data
-savemenu_str1:  dc.b "  Cancel       ",0
-savemenu_str2:  dc.b "  Save Game 1  ",0
-savemenu_str3:  dc.b "  Save Game 2  ",0
-savemenu_str4:  dc.b "  Save Game 3  ",0
-    ALIGN(2)
-    section .text
 
 ; ##########################################################################################
 ; # Main loop
@@ -370,7 +218,7 @@ game_loop:
     move.w      RAM_COFFEE_LEVEL,d1
     cmp.w       #0,d1
     bhi         .after_coffee_check
-    bsr         make_die
+    bsr         make_die_coffee
     bra         game_loop
 
 .after_coffee_check:
@@ -407,7 +255,7 @@ game_loop:
 ; # bad_guy_collision
 ; ##########################################################################################
 bad_guy_collision:
-    bsr         make_die
+    bsr         make_die_bad_guy
     rts
 
 ; ##########################################################################################
@@ -564,6 +412,12 @@ object_collision:
 ; ##########################################################################################
 ; # make_die
 ; ##########################################################################################
+make_die_coffee:
+    bsr     debug1
+make_die_bad_guy:
+    bsr     debug2
+make_die_falling:
+    bsr     debug3
 make_die:
     ifd DEBUG_MODE
     rts
@@ -861,7 +715,7 @@ not_falling_anymore:
     btst        #0,d6
     beq         .wont_die
 .will_die:
-    bsr         make_die
+    bsr         make_die_falling
 .wont_die:
     sub.w       #24,d0
     move.w      d0,RAM_HERO_Y
@@ -872,9 +726,41 @@ exit_falling:
     movem.l     (sp)+,a0/d0-d2/d6
     rts
 
-; ##########################################################################################
-    section .data
-    ALIGN(2)
-was_stable:         dc.w 0
-RAM_VSYNC_TICK:     dc.b 0
-RAM_DUMMY:          dc.b 0
+debug1:
+    ifnd DEBUG_MODE
+    rts
+    endc
+    movem.l     a0/d0-d2,-(sp)
+
+    lea         debug1_phrase,a0
+    move.w      #15,d2
+    bsr         write_string_middle
+
+    movem.l     (sp)+,a0/d0-d2
+    rts
+
+debug2:
+    ifnd DEBUG_MODE
+    rts
+    endc
+    movem.l     a0/d0-d2,-(sp)
+
+    lea         debug2_phrase,a0
+    move.w      #15,d2
+    bsr         write_string_middle
+
+    movem.l     (sp)+,a0/d0-d2
+    rts
+
+debug3:
+    ifnd DEBUG_MODE
+    rts
+    endc
+    movem.l     a0/d0-d2,-(sp)
+
+    lea         debug3_phrase,a0
+    move.w      #15,d2
+    bsr         write_string_middle
+
+    movem.l     (sp)+,a0/d0-d2
+    rts

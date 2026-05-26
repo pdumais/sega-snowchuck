@@ -41,6 +41,7 @@
     xdef RAM_H2
     xdef RAM_VRAM_LOAD_COMMAND
     xdef RAM_PLANEB_RING_INDEX
+    xdef RAM_VSYNC_TICK
     xdef ram_init
     xdef sram_init
     xdef sram_save_game
@@ -183,4 +184,6 @@ RAM_ADRENALINE:                 dc.w 0
 RAM_H2:                         dc.w 0
 RAM_VRAM_LOAD_COMMAND:          dc.w 0
 RAM_PLANEB_RING_INDEX:          dc.w 0
+RAM_VSYNC_TICK:                 dc.b 0
+RAM_DUMMY:                      dc.b 0
 

@@ -13,5 +13,5 @@ void ClickableQLabel::mousePressEvent(QMouseEvent *event)
         emit this->clicked(this);
     }
 
-    QLabel::mousePressEvent(event);
+    //QLabel::mousePressEvent(event);
 }

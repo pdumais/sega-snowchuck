@@ -7,7 +7,7 @@ ASFLAGS=-m68000 -Felf -spaces -no-opt
 ASZ80FLAGS=-Fvobj -spaces
 LDFLAGS=-brawbin1 -T $(LSCRIPT) 
 LDZ80FLAGS=-brawbin1 -T linkerz80.ld -Mmapz80.txt
-SRCS=main.vasm vdp.vasm sprites.vasm levels.vasm graphx.vasm ram.vasm soundengine.vasm sound.vasm font.vasm write.vasm
+SRCS=main.vasm vdp.vasm sprites.vasm levels.vasm graphx.vasm ram.vasm soundengine.vasm sound.vasm font.vasm write.vasm menus.vasm
 OBJS=$(SRCS:.vasm=.o)
 OBJS-DEBUG=$(SRCS:.vasm=-debug.o)
 OUT=snowchuck.bin
@@ -25,10 +25,10 @@ z80.bin: z80.vasm
 font.vasm:
 	python3 ../images/fontconvert.py ../images/font.asm > font.vasm
 
-sprites.vasm: 
+sprites.vasm: ../images/sprites.vasm 
 	cp ../images/sprites.vasm ./
 
-levels.vasm:
+levels.vasm: ../images/levels.vasm
 	cp ../images/levels.vasm ./
 
 sound.vasm:
@@ -59,8 +59,8 @@ start_xpra:
 run_on_xpra: $(OUT)
 	DISPLAY=:100 blastem $(OUT)
 
-run: $(OUT)
-	blastem $(OUT)
+run: $(OUT-DEBUG)
+	blastem $(OUT-DEBUG)
 
 disz80:
 	z80dasm -g0 z80.bin -l -a

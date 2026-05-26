@@ -988,6 +988,7 @@ graphx_init_level:
     move.l      (a0),d0
     move.l      d0,RAM_OBJ_TABLE
     move.w      4(a0),d0
+    sub.w       #1,d0
     move.w      d0,RAM_OBJ_COUNT
 
     move.l      RAM_LEVEL_NUMBER,d0

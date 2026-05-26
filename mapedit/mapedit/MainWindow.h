@@ -22,6 +22,8 @@ private slots:
 
     void on_slider_valueChanged(int value);
 
+    void on_pushButton_clicked();
+
 private:
     Ui::MainWindow *ui;
     MapData* mpMapData;

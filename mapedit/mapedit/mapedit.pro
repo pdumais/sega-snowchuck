@@ -13,13 +13,15 @@ SOURCES += \
     MapData.cpp \
     MapView.cpp \
     main.cpp \
-    MainWindow.cpp
+    MainWindow.cpp \
+    palettewidget.cpp
 
 HEADERS += \
     ClickableQLabel.h \
     MainWindow.h \
     MapData.h \
-    MapView.h
+    MapView.h \
+    palettewidget.h
 
 FORMS += \
     MainWindow.ui

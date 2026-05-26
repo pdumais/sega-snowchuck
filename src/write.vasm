@@ -5,6 +5,18 @@
 
 ; ##########################################################################################
 
+    section .data
+    
+    ALIGN(2)
+coin_phrase: dc.b "Coins: 00",0
+    ALIGN(2)
+warmth_phrase: dc.b "Warmth:     ",0
+    ALIGN(2)
+gameover_phrase: dc.b "Game Over!",0
+    ALIGN(2)
+gameoverclear_phrase: dc.b "          ",0
+    ALIGN(2)
+
     section .text
 
     include defines.vasm
@@ -17,6 +29,7 @@
     xdef write_clear_game_over
     xdef write_block_count
     xdef write_string
+    xdef write_string_middle
     xdef write_clear_screen
 ; ##########################################################################################
 
@@ -255,16 +268,3 @@ write_string_middle:
     movem.l     (sp)+,a0-a1/d0-d2
     rts
 
-; ##########################################################################################
-
-    section .data
-    
-    ALIGN(2)
-coin_phrase: dc.b "Coins: 00",0
-    ALIGN(2)
-warmth_phrase: dc.b "Warmth:     ",0
-    ALIGN(2)
-gameover_phrase: dc.b "Game Over!",0
-    ALIGN(2)
-gameoverclear_phrase: dc.b "          ",0
-    ALIGN(2)

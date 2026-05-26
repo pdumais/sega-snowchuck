@@ -12,21 +12,29 @@ class MapView : public QWidget
 public:
     explicit MapView(QWidget *parent = nullptr);
 
-    void setMap(int lenght, QVector<QVector<MapGroundObject>> ground);
+    void setMap(int lenght, QVector<QVector<MapGroundObject>> ground, QVector<MapObject> objects, QVector<MapObject> badGuys);
     void setViewPortStartIndex(int index);
+    void updateMapData(int level, MapData* pMapData);
 
 protected:
+    void wheelEvent(QWheelEvent *event) override;
 
 private:
+    struct BlockSelection {
+        int x;
+        int slot;
+    };
     int mBlockCount;
     QVector<QVector<MapGroundObject>> ground;
+    QVector<MapObject> mObjects;
+    QVector<MapObject> mBadGuys;
     QVector<QLabel*> mColumns;
     QVector<QLabel*> mSlots;
-    QPoint mSelectedBlock;
 
     void _clearWindow();
     void _redraw();
     int mCurrentViewIndex;
+    BlockSelection mSelectedBlock;
 
 signals:
     void viewPortChanged(int index);

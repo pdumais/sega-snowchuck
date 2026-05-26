@@ -1,0 +1,24 @@
+
+shortcut for del key to change to empty type
+
+how it works:
+    Automaticlaly loads ../../images/map.json
+    saves in ./map.json.
+        save function only updates currently loaded level. If changes made in another level, they wont be applied
+    map.json needs to be manually copied to ../../images
+    run "make" in images
+    run "make" in src
+
+
+
+change type on right click (type should include "empty")
+    either we lock the choice to tiles that are already in level or we need to update the palettes if we add new blocks
+
+remove objects and badguys
+move objects or badguys
+add objects and badguys (will affect palette if adding those that are not in map already
+add blocks (will affect palette if adding those that are not in map already
+
+    
+
+
