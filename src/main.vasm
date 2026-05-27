@@ -14,14 +14,7 @@ debug3_phrase:      dc.b "debug3",0
     ALIGN(2)
 
     section .text
- 
-    xref    vdp_init
-    xref    vdp_load_palette
-    xref    vdp_load_tile
-    xref    graphx_load_level_palette
-    xref    graphx_load_level_tiles
-
-    include interrupts.vasm
+    xdef    START 
 
 ; ##########################################################################################
 ; # Entry point
@@ -45,11 +38,8 @@ START:
     move.b      #$40, (ADDR_CONTROLLER1_CTRL)
     move.b      #$40, (ADDR_CONTROLLER1_DATA)
 
-    ; move.l #7,RAM_LEVEL_NUMBER
-    ; move.l #$14,RAM_LAST_TOTAL_COINS
-    ;move.l #0,d0
-    ;bsr sram_save_game ; TODO DUMAIS
 
+    ; Show main menu and then load new game or saved game
     move.l      #0,d7                           ; Load level 0 before showing main menu. Because of the init stuff that we need
     bsr         change_level                    ; Initialize level
     bsr         main_menu                       ; Load main menu. returns d7 = chosen option
@@ -67,11 +57,12 @@ START:
     move.w      #0,RAM_TOTAL_COINS              ; reset coin count
     move.l      #0,d7                           ; level 0
     ifd DEBUG_MODE
-    move.l      #11,d7                           ; level override in debug mode
+    move.l      #12,d7                           ; level override in debug mode
     endc
 .load_game:
     bsr         change_level                    ; Initialize level
 
+    ; Start the game
     bsr         game_loop
 
 
@@ -79,9 +70,8 @@ START:
 ; # Main loop
 ; ##########################################################################################
 game_loop:
-    cmp.b       #1,RAM_VSYNC_TICK
-    bne         .skip_vsync_scheduled_stuff
-    move.b      #0,RAM_VSYNC_TICK
+    bsr         graphx_wait_vsync
+    bsr         graphx_render
 
     move.w      RAM_ADRENALINE,d1
     cmp.w       #0,d1
@@ -244,8 +234,6 @@ game_loop:
     bsr         write_block_count
     endc
     STI
-
-.skip_vsync_scheduled_stuff:
 
     bra         game_loop
 
@@ -420,7 +408,7 @@ make_die_falling:
     bsr     debug3
 make_die:
     ifd DEBUG_MODE
-    rts
+    ;rts
     endc
 
     movem.l     a0/d0-d1,-(sp)
@@ -518,48 +506,6 @@ change_level:
     STI
     movem.l     (sp)+,a0/d0-d1
     rts
-
-
-; ##########################################################################################
-; # INT_HSYNC - Interrupt handler
-; ##########################################################################################
-INT_HSYNC:
-    nop
-    rte
-
-; ##########################################################################################
-; # INT_VSYNC - Interrupt handler
-; ##########################################################################################
-INT_VSYNC:
-    movem.l     d1,-(sp)
-
-    move.b      #1,RAM_VSYNC_TICK
-
-    move.b      #$40, (ADDR_CONTROLLER1_DATA)
-    nop                 
-    nop
-    nop
-    nop
-    move.b      (ADDR_CONTROLLER1_DATA), d1
-    and.b       #%111111,d1     ; C/B/right/left/down/up
-    move.b      d1,(RAM_BUTTONS)
-
-    move.b      #$00, (ADDR_CONTROLLER1_DATA)
-    nop                 
-    nop
-    nop
-    nop
-    move.b      (ADDR_CONTROLLER1_DATA), d1
-    and.b       #%111111,d1     ; start/A/0/0/down/up
-    move.b      d1,(RAM_BUTTONS+1)
-    
-    bsr         graphx_update_sprites
-    bsr         graphx_update_background
-    bsr         graphx_update_window
-    bsr         graphx_animate_water
-
-    movem.l     (sp)+,d1
-    rte
 
 
 ; ##########################################################################################
@@ -726,6 +672,9 @@ exit_falling:
     movem.l     (sp)+,a0/d0-d2/d6
     rts
 
+; ##########################################################################################
+; # Debug stuff 
+; ##########################################################################################
 debug1:
     ifnd DEBUG_MODE
     rts

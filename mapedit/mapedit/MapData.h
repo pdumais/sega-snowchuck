@@ -21,6 +21,14 @@ public:
     QImage   img;
     int           y;
     int           x;
+    int num;
+};
+
+class MapObjectType
+{
+public:
+    QImage img;
+    int type;
 };
 
 class MapData
@@ -37,6 +45,8 @@ public:
     QVector<QVector<MapGroundObject>> getGround(int level);
     QVector<MapObject> getObjects(int level);
     QVector<MapObject> getBadGuys(int level);
+
+    QVector<MapObjectType> getObjectTypes(int level);
 
     QString getBlockName(int level, int num);
 

@@ -1,4 +1,15 @@
-INT_VECTOR:
+; Snowchuck
+; Patrick Dumais
+; No AI-generated code here
+;
+
+    include defines.vasm
+
+    section .text
+    ORG 0
+; ##########################################################################################
+; # Interrupt vector table
+; ##########################################################################################
     dc.l $00FFFFF0        ; Initial SP
     dc.l START            ; Initial PC
     dc.l ex2
@@ -64,8 +75,30 @@ INT_VECTOR:
     dc.l ERROR
     dc.l ERROR
 
-    include rom_header.vasm
+; ##########################################################################################
+; # ROM Header. Has to be immediately after int vector table
+; ##########################################################################################
+ROM_HEADER: 
+    dc.b	"SEGA GENESIS    "
+    dc.b	"(C)---- "
+    dc.b	"1982.DEC"
+    dc.b	"MEOW                                            "
+    dc.b	"MEOW                                            "
+    dc.b	"GM 0000000 -00"
+    dc.w	$0000
+    dc.b	"J               "
+    dc.l	$00000000
+    dc.l	$003FFFFF
+    dc.l	$00FF0000,$00FFFFFF
+    dc.b	"RA",$F8, $20 ; External Ram
+    dc.l    $200001, $2000FF
+    dc.b	"            " ; Modem Info
+    dc.b	"                                        "
+    dc.b	"JUE             "
 
+; ##########################################################################################
+; # Exception handlers
+; ##########################################################################################
 ex1:
         CLI
         ;move.w  (sp)+,d1
@@ -123,4 +156,17 @@ exb:
 ERROR:
         CLI
     bra.s ERROR
+
+; ##########################################################################################
+; # INT_HSYNC - Interrupt handler
+; ##########################################################################################
+INT_HSYNC:
+    rte
+
+; ##########################################################################################
+; # INT_VSYNC - Interrupt handler. We only set a flag to kick game loop
+; ##########################################################################################
+INT_VSYNC:
+    add.b       #1,RAM_VSYNC_TICK
+    rte
 

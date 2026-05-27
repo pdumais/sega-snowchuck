@@ -950,7 +950,7 @@ def gen_asm(levels, pal_data, sprite_name_to_index):
 
 
 if __name__ == "__main__":
-    with open('map.json', 'r') as f:
+    with open(sys.argv[1], 'r') as f:
         data = json.load(f)
         gen_asm(data["l"], data["p"], data["sprnames"])
 

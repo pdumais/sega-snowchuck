@@ -59,37 +59,53 @@ http://sun.hasenbraten.de/vasm/release/vasm.tar.gz
 http://sun.hasenbraten.de/vlink/release/vlink.tar.gz
     make
 
+# Map Editor
+Automaticlaly loads ../../images/edited-map.json. Saves in the same file
+
+select block in the bottom view when it shows 5 slots. use Del key to remove.
+    use mouse scroll to adjst Y
+
+to test edited map:
+    run "make edit" in images
+    run "make" in src
+
+to run with original file:
+    run "make" in images
+    run "make" in src
+
+to use changes officially:
+    copy edited-map.json to map.json and build
+    run "make" in images
+    run "make" in src
+
 ## Emulator
 I'm using blastem. The package is available on ubuntu
 
 
 # TODO
-    - Level editor
-      - using QT
-      - read the real chuck.map file directly and write to it. We can then rerun it thru convert.py
-      - loads BMPs? Or spr24?
-      - Operations for each columns
-        - Move blocks on Y axis
-        - Add block / delete blocks in the series of 5
-        - Change block type
-        - add/remove objects
-        - Handle "end" as a special case
     - A few levels are impossible to do after the map conversion. Need to be fixed
-      - Level 11
+      - Level 12: Needs trees to hide
+      - Level 15: Should be fixed now. Test it
 
+    - Game loop enhancements
+        - find a way to report vsync stats back when running on metal. Save in sram?
+
+    - Level editor
+        - change type on right click (type should include "empty")
+            either we lock the choice to tiles that are already in level or we need to update the palettes if we add new blocks
+      - move objects
+        - add blocks (will affect palette if adding those that are not in map already
+      - add/remove/change badguys (will affect palette if adding those that are not in map already
 
 # Bugs
     - when checking if we can move left, I need to take 12 from X. Why? block collision for bad guys work without it.
     - on death animation, frame show hero facing left. It should face the same way it was facing when death occured   
     - dangerous tiles are only detected when falling on them. Not it we walk up to them when they are at the same level we already are on 
-    - sometimes I dies immediately after respawning for no reason
-    - some snow blocks have to wrong edge side
-        like level 18. That's because multiple blocks are on top of the other. we need to change the order we draw them
+    - sometimes I die immediately after respawning for no reason
 
 # Improvements
     - Use movem everywhere instead of PUSH/POP in function entry/exit
     - After ending the game, we just go back to level 0. There should be a nice ending
     - change font color. Would need to find a fixed slot in palette. And we dont wanna have to change the font file's numbers
-    - make music volume lower, to hear sound effects better
 
 

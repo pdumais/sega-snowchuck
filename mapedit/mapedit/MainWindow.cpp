@@ -2,6 +2,8 @@
 #include "ui_MainWindow.h"
 #include "palettewidget.h"
 #include <QVBoxLayout>
+#include <QPushButton>
+#include <QIcon>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -29,7 +31,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     this->mpMapView->show();
 
-    this->mpMapData = new MapData("../../images/map.json");
+    this->mpMapData = new MapData("../../images/edited-map.json");
     for (int i = 0; i < this->mpMapData->getLevelCount(); i ++)
     {
         this->ui->comboBox->addItem("Level "+QString::number(i+1));
@@ -48,6 +50,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_comboBox_currentIndexChanged(int index)
 {
+    qDebug() << "Refresh level " << index;
     int cmax = this->mpMapData->getBlockCount(index);
     this->mpMapView->setMap(cmax,this->mpMapData->getGround(index), this->mpMapData->getObjects(index), this->mpMapData->getBadGuys(index));
     auto palw1 = (PaletteWidget*)this->ui->framepal->children()[0];
@@ -58,6 +61,25 @@ void MainWindow::on_comboBox_currentIndexChanged(int index)
     palw2->setColours(this->mpMapData->getPalette(index,1));
     palw3->setColours(this->mpMapData->getPalette(index,2));
     palw4->setColours(this->mpMapData->getPalette(index,3));
+
+    const auto children = this->ui->frameobj->findChildren<QPushButton*>(QString(), Qt::FindDirectChildrenOnly);
+    for (QPushButton *child : children) delete child;
+    int x = 0;
+    for (auto mo : this->mpMapData->getObjectTypes(index))
+    {
+        qDebug() << "Adding object type " << mo.type;
+        auto b = new QPushButton(this->ui->frameobj);
+        b->setFixedSize(24,24);
+        QIcon icon(QPixmap::fromImage(mo.img));
+        b->setIcon(icon);
+        b->move(x,0);
+        b->show();
+        QObject::connect(b, &QPushButton::clicked,[this, mo](bool down)
+        {
+            this->mpMapView->startAddObject(mo.img, mo.type);
+        });
+        x+=26;
+    }
 }
 
 

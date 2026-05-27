@@ -12,3 +12,7 @@ sound/*.vasm
 z80.bin
 src/font.vasm
 src/sound.vasm
+*.bin
+src/map*.txt
+src/history
+mapedit/build-mapedit*

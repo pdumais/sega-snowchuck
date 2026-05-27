@@ -90,6 +90,19 @@ QSlider::add-page:horizontal {
      <number>10</number>
     </property>
    </widget>
+   <widget class="QFrame" name="frameobj">
+    <property name="geometry">
+     <rect>
+      <x>280</x>
+      <y>40</y>
+      <width>240</width>
+      <height>30</height>
+     </rect>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::NoFrame</enum>
+    </property>
+   </widget>
    <widget class="QFrame" name="framepal">
     <property name="geometry">
      <rect>

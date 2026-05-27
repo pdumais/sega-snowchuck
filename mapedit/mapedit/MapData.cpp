@@ -128,6 +128,7 @@ QVector<MapObject> MapData::getObjects(int level)
         mo.x = o["x"].toInt();
         mo.y = o["y"].toInt();
         int num = o["num"].toInt();
+        mo.num = num;
         QString fname = this->getBlockName(level, num);
         qDebug() << "Object " << num << " from " << fname;
         mo.img = QImage("../../images/"+fname+".bmp");
@@ -159,6 +160,28 @@ QVector<MapObject> MapData::getBadGuys(int level)
 
 }
 
+QVector<MapObjectType> MapData::getObjectTypes(int level)
+{
+    QSet<int> seen;
+    QVector<MapObjectType> ret;
+    QJsonArray objs = this->mLevels["levels"].toArray()[level].toObject()["thing"].toArray();
+    for (int i = 0; i < this->getObjectsCount(level); i++)
+    {
+        auto o = objs[i].toObject();
+        int num = o["num"].toInt();
+        if (!seen.contains(num))
+        {
+            MapObjectType mo;
+            QString fname = this->getBlockName(level, num);
+            mo.img = QImage("../../images/"+fname+".bmp");
+            mo.type = num;
+            seen.insert(num);
+            ret.append(mo);
+        }
+    }
+    return ret;
+}
+
 void MapData::updateData(int level, QVector<QVector<MapGroundObject>>& ground, QVector<MapObject>& objects, QVector<MapObject>& badGuys)
 {
 
@@ -167,22 +190,44 @@ void MapData::updateData(int level, QVector<QVector<MapGroundObject>>& ground, Q
     auto levelObject = levels[level].toObject();
     auto groundColumns = levelObject["ground"].toArray();
 
+    QJsonArray things;
+    for (auto mo : objects)
+    {
+        QJsonObject o;
+        o["num"] = QJsonValue(mo.num);
+        o["x"] = QJsonValue(mo.x);
+        o["y"] = QJsonValue(mo.y);
+        things.append(o);
+    }
+
     int x = 0;
     for (auto col : ground)
     {
         auto jsoncol = groundColumns[x].toObject();
         auto yArray = jsoncol["y"].toArray();
+        auto numArray = jsoncol["num"].toArray();
         int y = 0;
         for (auto mo : col)
         {
-            yArray[y] = QJsonValue(mo.y);
+            if (mo.img.isNull())
+            {
+                numArray[y] = 255;
+                yArray[y] = QJsonValue(255);
+            }
+            else
+            {
+                yArray[y] = QJsonValue(mo.y);
+            }
             y++;
         }
         jsoncol["y"] = yArray;
+        jsoncol["num"] = numArray;
         groundColumns[x] = jsoncol;
         x++;
     }
 
+    levelObject["tmax"] = QJsonValue(objects.length());
+    levelObject.insert("thing", things);
     levelObject.insert("ground", groundColumns);
     levels[level] = levelObject;
     this->mLevels.insert("levels", levels);
@@ -193,7 +238,7 @@ void MapData::updateData(int level, QVector<QVector<MapGroundObject>>& ground, Q
 void MapData::commit()
 {
     QJsonDocument doc(this->mRoot);
-    QFile file("map.json");
+    QFile file("../../images/edited-map.json");
     if (file.open(QIODevice::WriteOnly)) {
         file.write(doc.toJson());
         file.close();

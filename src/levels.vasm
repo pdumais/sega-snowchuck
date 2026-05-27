@@ -917,7 +917,7 @@ level_12_palette0:
     dc.w $0200
     dc.w $0C00
     dc.w $0E22
-    dc.w $0000
+    dc.w $0020
     dc.w $0000
     xdef level_12_palette1
 level_12_palette1:
@@ -4259,6 +4259,9 @@ level_12_sprite_cube36_tile:    dc.l sprite_cube36_tile_0
 level_12_sprite_cube4_palette: dc.b 0
 level_12_sprite_cube4_flags:  dc.b 0
 level_12_sprite_cube4_tile:    dc.l sprite_cube4_tile_0
+level_12_sprite_obj4_palette: dc.b 0
+level_12_sprite_obj4_flags:  dc.b 0
+level_12_sprite_obj4_tile:    dc.l sprite_obj4_tile_0
 level_12_sprite_bad11_palette: dc.b 1
 level_12_sprite_bad11_flags:  dc.b 0
 level_12_sprite_bad11_tile:    dc.l sprite_bad11_tile_0
@@ -21090,7 +21093,7 @@ level_11_blocks:
     dc.w 18 ; level 11, x=456
     dc.w 168
     dc.w 18 ; level 11, x=456
-    dc.w 104
+    dc.w 96
     dc.w 31 ; level 11, x=456
     dc.w 80
     dc.w 18 ; level 11, x=480
@@ -21100,7 +21103,7 @@ level_11_blocks:
     dc.w 18 ; level 11, x=480
     dc.w 168
     dc.w 18 ; level 11, x=480
-    dc.w 104
+    dc.w 96
     dc.w 31 ; level 11, x=480
     dc.w 80
     dc.w 18 ; level 11, x=504
@@ -21110,7 +21113,7 @@ level_11_blocks:
     dc.w 18 ; level 11, x=504
     dc.w 168
     dc.w 18 ; level 11, x=504
-    dc.w 104
+    dc.w 96
     dc.w 31 ; level 11, x=504
     dc.w 80
     dc.w 18 ; level 11, x=528
@@ -21120,7 +21123,7 @@ level_11_blocks:
     dc.w 255 ; level 11, x=528
     dc.w 255
     dc.w 18 ; level 11, x=528
-    dc.w 104
+    dc.w 96
     dc.w 31 ; level 11, x=528
     dc.w 80
     dc.w 18 ; level 11, x=552
@@ -21140,7 +21143,7 @@ level_11_blocks:
     dc.w 255 ; level 11, x=576
     dc.w 255
     dc.w 18 ; level 11, x=576
-    dc.w 104
+    dc.w 96
     dc.w 31 ; level 11, x=576
     dc.w 80
     dc.w 18 ; level 11, x=600
@@ -21150,7 +21153,7 @@ level_11_blocks:
     dc.w 255 ; level 11, x=600
     dc.w 255
     dc.w 18 ; level 11, x=600
-    dc.w 104
+    dc.w 96
     dc.w 31 ; level 11, x=600
     dc.w 80
     dc.w 18 ; level 11, x=624
@@ -21160,7 +21163,7 @@ level_11_blocks:
     dc.w 255 ; level 11, x=624
     dc.w 255
     dc.w 18 ; level 11, x=624
-    dc.w 104
+    dc.w 96
     dc.w 31 ; level 11, x=624
     dc.w 80
     dc.w 18 ; level 11, x=648
@@ -21170,7 +21173,7 @@ level_11_blocks:
     dc.w 255 ; level 11, x=648
     dc.w 255
     dc.w 18 ; level 11, x=648
-    dc.w 104
+    dc.w 96
     dc.w 31 ; level 11, x=648
     dc.w 80
     dc.w 18 ; level 11, x=672
@@ -21180,7 +21183,7 @@ level_11_blocks:
     dc.w 255 ; level 11, x=672
     dc.w 255
     dc.w 18 ; level 11, x=672
-    dc.w 104
+    dc.w 96
     dc.w 31 ; level 11, x=672
     dc.w 80
     dc.w 18 ; level 11, x=696
@@ -21189,20 +21192,20 @@ level_11_blocks:
     dc.w 255
     dc.w 255 ; level 11, x=696
     dc.w 255
-    dc.w 18 ; level 11, x=696
-    dc.w 104
-    dc.w 31 ; level 11, x=696
-    dc.w 80
+    dc.w 255 ; level 11, x=696
+    dc.w 255
+    dc.w 255 ; level 11, x=696
+    dc.w 255
     dc.w 18 ; level 11, x=720
     dc.w 192
     dc.w 255 ; level 11, x=720
     dc.w 255
     dc.w 255 ; level 11, x=720
     dc.w 255
-    dc.w 18 ; level 11, x=720
-    dc.w 104
-    dc.w 31 ; level 11, x=720
-    dc.w 80
+    dc.w 255 ; level 11, x=720
+    dc.w 255
+    dc.w 255 ; level 11, x=720
+    dc.w 255
     dc.w 18 ; level 11, x=744
     dc.w 192
     dc.w 255 ; level 11, x=744
@@ -21210,7 +21213,7 @@ level_11_blocks:
     dc.w 255 ; level 11, x=744
     dc.w 255
     dc.w 18 ; level 11, x=744
-    dc.w 104
+    dc.w 96
     dc.w 31 ; level 11, x=744
     dc.w 80
     dc.w 18 ; level 11, x=768
@@ -21220,7 +21223,7 @@ level_11_blocks:
     dc.w 255 ; level 11, x=768
     dc.w 255
     dc.w 18 ; level 11, x=768
-    dc.w 104
+    dc.w 96
     dc.w 31 ; level 11, x=768
     dc.w 80
     dc.w 18 ; level 11, x=792
@@ -21230,7 +21233,7 @@ level_11_blocks:
     dc.w 255 ; level 11, x=792
     dc.w 255
     dc.w 18 ; level 11, x=792
-    dc.w 104
+    dc.w 96
     dc.w 31 ; level 11, x=792
     dc.w 80
     dc.w 18 ; level 11, x=816
@@ -21240,7 +21243,7 @@ level_11_blocks:
     dc.w 255 ; level 11, x=816
     dc.w 255
     dc.w 18 ; level 11, x=816
-    dc.w 104
+    dc.w 96
     dc.w 31 ; level 11, x=816
     dc.w 80
     dc.w 18 ; level 11, x=840
@@ -21250,7 +21253,7 @@ level_11_blocks:
     dc.w 255 ; level 11, x=840
     dc.w 255
     dc.w 18 ; level 11, x=840
-    dc.w 104
+    dc.w 96
     dc.w 31 ; level 11, x=840
     dc.w 80
     dc.w 18 ; level 11, x=864
@@ -21260,7 +21263,7 @@ level_11_blocks:
     dc.w 255 ; level 11, x=864
     dc.w 255
     dc.w 18 ; level 11, x=864
-    dc.w 104
+    dc.w 96
     dc.w 31 ; level 11, x=864
     dc.w 80
     dc.w 18 ; level 11, x=888
@@ -22305,7 +22308,7 @@ level_12_blocks:
     dc.w 255 ; level 12, x=144
     dc.w 255
     dc.w 24 ; level 12, x=168
-    dc.w 184
+    dc.w 176
     dc.w 26 ; level 12, x=168
     dc.w 48
     dc.w 28 ; level 12, x=168
@@ -22345,7 +22348,7 @@ level_12_blocks:
     dc.w 255 ; level 12, x=240
     dc.w 255
     dc.w 24 ; level 12, x=264
-    dc.w 184
+    dc.w 176
     dc.w 26 ; level 12, x=264
     dc.w 48
     dc.w 28 ; level 12, x=264
@@ -25169,7 +25172,7 @@ level_14_blocks:
     dc.w 255 ; level 14, x=984
     dc.w 255
     dc.w 26 ; level 14, x=984
-    dc.w 104
+    dc.w 120
     dc.w 255 ; level 14, x=984
     dc.w 255
     dc.w 255 ; level 14, x=984
@@ -25239,7 +25242,7 @@ level_14_blocks:
     dc.w 255 ; level 14, x=1152
     dc.w 255
     dc.w 26 ; level 14, x=1152
-    dc.w 120
+    dc.w 136
     dc.w 255 ; level 14, x=1152
     dc.w 255
     dc.w 255 ; level 14, x=1152
@@ -25299,7 +25302,7 @@ level_14_blocks:
     dc.w 255 ; level 14, x=1296
     dc.w 255
     dc.w 26 ; level 14, x=1296
-    dc.w 88
+    dc.w 120
     dc.w 255 ; level 14, x=1296
     dc.w 255
     dc.w 255 ; level 14, x=1296
@@ -25359,7 +25362,7 @@ level_14_blocks:
     dc.w 255 ; level 14, x=1440
     dc.w 255
     dc.w 26 ; level 14, x=1440
-    dc.w 144
+    dc.w 120
     dc.w 255 ; level 14, x=1440
     dc.w 255
     dc.w 255 ; level 14, x=1440
@@ -52774,67 +52777,67 @@ level_11_bad:
     dc.b 1 ; direction 
     dc.b 0 ; deviation
 level_12_bad: 
-    dc.w 31 ; level 12
+    dc.w 32 ; level 12
     dc.w 72
     dc.w 168
     dc.b 1 ; direction 
     dc.b 0 ; deviation
-    dc.w 31 ; level 12
+    dc.w 32 ; level 12
     dc.w 648
     dc.w 168
     dc.b 1 ; direction 
     dc.b 0 ; deviation
-    dc.w 43 ; level 12
+    dc.w 44 ; level 12
     dc.w 1128
     dc.w 168
     dc.b 1 ; direction 
     dc.b 0 ; deviation
-    dc.w 31 ; level 12
+    dc.w 32 ; level 12
     dc.w 1488
     dc.w 168
     dc.b 1 ; direction 
     dc.b 0 ; deviation
-    dc.w 43 ; level 12
+    dc.w 44 ; level 12
     dc.w 1992
     dc.w 168
     dc.b 1 ; direction 
     dc.b 0 ; deviation
-    dc.w 43 ; level 12
+    dc.w 44 ; level 12
     dc.w 384
     dc.w 24
     dc.b 1 ; direction 
     dc.b 0 ; deviation
-    dc.w 43 ; level 12
+    dc.w 44 ; level 12
     dc.w 336
     dc.w 168
     dc.b 1 ; direction 
     dc.b 0 ; deviation
-    dc.w 31 ; level 12
+    dc.w 32 ; level 12
     dc.w 720
     dc.w 24
     dc.b 1 ; direction 
     dc.b 0 ; deviation
-    dc.w 31 ; level 12
+    dc.w 32 ; level 12
     dc.w 912
     dc.w 24
     dc.b 1 ; direction 
     dc.b 0 ; deviation
-    dc.w 35 ; level 12
+    dc.w 36 ; level 12
     dc.w 1296
     dc.w 24
     dc.b 1 ; direction 
     dc.b 0 ; deviation
-    dc.w 39 ; level 12
+    dc.w 40 ; level 12
     dc.w 1632
     dc.w 24
     dc.b 1 ; direction 
     dc.b 0 ; deviation
-    dc.w 39 ; level 12
+    dc.w 40 ; level 12
     dc.w 1968
     dc.w 24
     dc.b 1 ; direction 
     dc.b 0 ; deviation
-    dc.w 43 ; level 12
+    dc.w 44 ; level 12
     dc.w 2208
     dc.w 24
     dc.b 1 ; direction 
@@ -54189,6 +54192,9 @@ level_11_obj:
     dc.w 2496
     dc.w 40
 level_12_obj: 
+    dc.w 31 ; level 12
+    dc.w 336
+    dc.w 24
     dc.w 22 ; level 12
     dc.w 408
     dc.w 72
@@ -54281,6 +54287,36 @@ level_12_obj:
     dc.w 72
     dc.w 4 ; level 12
     dc.w 2352
+    dc.w 168
+    dc.w 31 ; level 12
+    dc.w 576
+    dc.w 24
+    dc.w 31 ; level 12
+    dc.w 960
+    dc.w 24
+    dc.w 31 ; level 12
+    dc.w 1272
+    dc.w 24
+    dc.w 31 ; level 12
+    dc.w 1848
+    dc.w 24
+    dc.w 31 ; level 12
+    dc.w 2112
+    dc.w 24
+    dc.w 31 ; level 12
+    dc.w 384
+    dc.w 168
+    dc.w 31 ; level 12
+    dc.w 552
+    dc.w 168
+    dc.w 31 ; level 12
+    dc.w 1200
+    dc.w 168
+    dc.w 31 ; level 12
+    dc.w 1536
+    dc.w 168
+    dc.w 31 ; level 12
+    dc.w 2016
     dc.w 168
 level_13_obj: 
     dc.w 24 ; level 13
@@ -54426,6 +54462,9 @@ level_15_obj:
     dc.w 4 ; level 15
     dc.w 1656
     dc.w 112
+    dc.w 17 ; level 15
+    dc.w 192
+    dc.w 32
 level_16_obj: 
     dc.w 27 ; level 16
     dc.w 2712
@@ -55684,7 +55723,7 @@ level_obj_ref_11_obj:
     dc.w 15
 level_obj_ref_12_obj:
     dc.l level_12_obj
-    dc.w 32
+    dc.w 43
 level_obj_ref_13_obj:
     dc.l level_13_obj
     dc.w 23
@@ -55693,7 +55732,7 @@ level_obj_ref_14_obj:
     dc.w 16
 level_obj_ref_15_obj:
     dc.l level_15_obj
-    dc.w 11
+    dc.w 12
 level_obj_ref_16_obj:
     dc.l level_16_obj
     dc.w 20

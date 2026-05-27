@@ -42,13 +42,3 @@ wait_loop\@: nop
         move.w      #$2000, sr     ; disable interrupts
     endm
 
-    macro WAIT_SYNC
-    move.l      d0,-(sp)
-    move.l      #\1,d0
-    move.b      #0,RAM_VSYNC_TICK
-.1\@: cmp.b        #1,RAM_VSYNC_TICK
-    bne         .1\@
-    move.b      #0,RAM_VSYNC_TICK
-    dbra        d0,.1\@
-    move.l      (sp)+,d0
-    endm

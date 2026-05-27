@@ -117,6 +117,13 @@ write_block_count:
     move.w      #(39-12+5),d2
     bsr         write_string_middle
 
+    move.l      sp,a0
+    move.l      RAM_VSYNC_COUNTER,d1
+    bsr         num2stringHex
+
+    move.w      #(39-12+10),d2
+    bsr         write_string_middle
+
     add.l       #32,sp
 
     movem.l     (sp)+,a0/d0-d2

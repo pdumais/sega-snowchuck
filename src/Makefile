@@ -7,7 +7,7 @@ ASFLAGS=-m68000 -Felf -spaces -no-opt
 ASZ80FLAGS=-Fvobj -spaces
 LDFLAGS=-brawbin1 -T $(LSCRIPT) 
 LDZ80FLAGS=-brawbin1 -T linkerz80.ld -Mmapz80.txt
-SRCS=main.vasm vdp.vasm sprites.vasm levels.vasm graphx.vasm ram.vasm soundengine.vasm sound.vasm font.vasm write.vasm menus.vasm
+SRCS=interrupts.vasm main.vasm vdp.vasm sprites.vasm levels.vasm graphx.vasm ram.vasm soundengine.vasm sound.vasm font.vasm write.vasm menus.vasm
 OBJS=$(SRCS:.vasm=.o)
 OBJS-DEBUG=$(SRCS:.vasm=-debug.o)
 OUT=snowchuck.bin

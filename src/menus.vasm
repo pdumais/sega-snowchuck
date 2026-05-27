@@ -9,10 +9,10 @@
     xdef save_menu
 
     section .data
-menu_str1:  dc.b "  New Game     ",0
-menu_str2:  dc.b "  Load Game 1  ",0
-menu_str3:  dc.b "  Load Game 2  ",0
-menu_str4:  dc.b "  Load Game 3  ",0
+menu_str1:  dc.b "  NEW GAME     ",0
+menu_str2:  dc.b "  LOAD GAME 1  ",0
+menu_str3:  dc.b "  LOAD GAME 2  ",0
+menu_str4:  dc.b "  LOAD GAME 3  ",0
 savemenu_str1:  dc.b "  Cancel       ",0
 savemenu_str2:  dc.b "  Save Game 1  ",0
 savemenu_str3:  dc.b "  Save Game 2  ",0
@@ -27,7 +27,9 @@ savemenu_str4:  dc.b "  Save Game 3  ",0
 ; ##########################################################################################
 main_menu:
     bsr         sound_stop_song
-    WAIT_SYNC 2
+    bsr         graphx_wait_vsync
+    bsr         graphx_wait_vsync
+    bsr         graphx_wait_vsync
     move.l      #4,d0                           ; 4 = intro song
     bsr         sound_start_song
     move.l      #0,d7
@@ -62,9 +64,8 @@ update_menu:
     dbra        d2,.1
 
 main_menu_loop:
-    cmp.b       #1,RAM_VSYNC_TICK
-    bne         main_menu_loop
-    move.b      #0,RAM_VSYNC_TICK
+    bsr         graphx_wait_vsync
+    bsr         graphx_render
     move.b      (RAM_BUTTONS),d2
 
 .check_move_down:
@@ -131,9 +132,8 @@ saveupdate_menu:
     dbra        d2,.1
 
 save_menu_loop:
-    cmp.b       #1,RAM_VSYNC_TICK
-    bne         save_menu_loop
-    move.b      #0,RAM_VSYNC_TICK
+    bsr         graphx_wait_vsync
+    bsr         graphx_render
     move.b      (RAM_BUTTONS),d2
 
 .check_move_down:

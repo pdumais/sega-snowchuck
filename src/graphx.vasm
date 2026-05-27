@@ -26,30 +26,77 @@
     xdef graphx_check_ground
     xdef graphx_get_sprite_colision
     xdef graphx_animate_water
-
+    xdef graphx_check_controllers
+    xdef graphx_render
+    xdef graphx_wait_vsync
+    
     xref vdp_load_palette
     xref vdp_load_tile
     xref level_0_palette0
     xref level_0_ref
 
+; ##########################################################################################
+; # graphx_wait_vsync
+; ##########################################################################################
+graphx_wait_vsync:
+    move.l      #0,d0
+    move.b      #0,RAM_VSYNC_TICK
+.wait_vsync_loop:
+    add.l       #1,d0
+    cmp.b       #0,RAM_VSYNC_TICK
+    beq         .wait_vsync_loop
+    cmp.b       #1,RAM_VSYNC_TICK
+    beq         .no_skipped
+    add.l       #1,RAM_VSYNC_MISS_COUNTER
+.no_skipped
+    move.l      d0,RAM_VSYNC_COUNTER
+    rts
+
+
+; ##########################################################################################
+; # graphx_render
+; ##########################################################################################
+graphx_render:
+    bsr         graphx_check_controllers
+    bsr         graphx_update_sprites
+    bsr         graphx_update_background
+    bsr         graphx_update_window
+    bsr         graphx_animate_water
+    rts
+
+; ##########################################################################################
+; # graphx_check_controllers
+; ##########################################################################################
+graphx_check_controllers:
+    movem.l     d1,-(sp)
+
+    move.b      #$40, (ADDR_CONTROLLER1_DATA)
+    nop                 
+    nop
+    nop
+    nop
+    move.b      (ADDR_CONTROLLER1_DATA), d1
+    and.b       #%111111,d1     ; C/B/right/left/down/up
+    move.b      d1,(RAM_BUTTONS)
+
+    move.b      #$00, (ADDR_CONTROLLER1_DATA)
+    nop                 
+    nop
+    nop
+    nop
+    move.b      (ADDR_CONTROLLER1_DATA), d1
+    and.b       #%111111,d1     ; start/A/0/0/down/up
+    move.b      d1,(RAM_BUTTONS+1)
+
+    movem.l     (sp)+,d1
+    rts    
 
 ; ##########################################################################################
 ; # graphx_check_block_colision (d0=x, d1=y)
 ; # returns d6 = collision bit field
 ; ##########################################################################################
 graphx_check_block_colision:
-    movem.l    a0/d0-d5/d7,-(sp)
-
-    ; End of map?
-;    move.w      RAM_BLOCK_COUNT,d2
-;    sub.w       #1,d2
-;    mulu.w      #24,d2
-;    cmp.w       d2,d0
-;    blo         .not_at_end
-;    move.l      #%1000,d6
-;    bra         exit_block_collision_check
-;.not_at_end:
-
+    movem.l     a0/d0-d5/d7,-(sp)
 
     and.l       #$FFFF,d0
     and.l       #$FFFF,d1
