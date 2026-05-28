@@ -83,10 +83,6 @@ I'm using blastem. The package is available on ubuntu
 
 
 # TODO
-    - A few levels are impossible to do after the map conversion. Need to be fixed
-      - Level 12: Needs trees to hide
-      - Level 15: Should be fixed now. Test it
-
     - Game loop enhancements
         - find a way to report vsync stats back when running on metal. Save in sram?
 

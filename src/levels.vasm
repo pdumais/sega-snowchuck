@@ -26571,7 +26571,7 @@ level_15_blocks:
     dc.w 255 ; level 15, x=1128
     dc.w 255
     dc.w 25 ; level 15, x=1152
-    dc.w 56
+    dc.w 96
     dc.w 255 ; level 15, x=1152
     dc.w 255
     dc.w 255 ; level 15, x=1152
@@ -27848,7 +27848,7 @@ level_16_blocks:
     dc.w 255 ; level 16, x=2304
     dc.w 255
     dc.w 31 ; level 16, x=2304
-    dc.w 128
+    dc.w 120
     dc.w 255 ; level 16, x=2304
     dc.w 255
     dc.w 28 ; level 16, x=2328
@@ -27856,9 +27856,9 @@ level_16_blocks:
     dc.w 255 ; level 16, x=2328
     dc.w 255
     dc.w 30 ; level 16, x=2328
-    dc.w 128
+    dc.w 120
     dc.w 31 ; level 16, x=2328
-    dc.w 104
+    dc.w 96
     dc.w 255 ; level 16, x=2328
     dc.w 255
     dc.w 28 ; level 16, x=2352
@@ -27888,7 +27888,7 @@ level_16_blocks:
     dc.w 255 ; level 16, x=2400
     dc.w 255
     dc.w 31 ; level 16, x=2400
-    dc.w 128
+    dc.w 120
     dc.w 255 ; level 16, x=2400
     dc.w 255
     dc.w 28 ; level 16, x=2424
@@ -54318,6 +54318,15 @@ level_12_obj:
     dc.w 31 ; level 12
     dc.w 2016
     dc.w 168
+    dc.w 20 ; level 12
+    dc.w 1680
+    dc.w 24
+    dc.w 20 ; level 12
+    dc.w 1440
+    dc.w 24
+    dc.w 31 ; level 12
+    dc.w 1584
+    dc.w 24
 level_13_obj: 
     dc.w 24 ; level 13
     dc.w 2952
@@ -54464,6 +54473,9 @@ level_15_obj:
     dc.w 112
     dc.w 17 ; level 15
     dc.w 192
+    dc.w 32
+    dc.w 17 ; level 15
+    dc.w 672
     dc.w 32
 level_16_obj: 
     dc.w 27 ; level 16
@@ -55723,7 +55735,7 @@ level_obj_ref_11_obj:
     dc.w 15
 level_obj_ref_12_obj:
     dc.l level_12_obj
-    dc.w 43
+    dc.w 46
 level_obj_ref_13_obj:
     dc.l level_13_obj
     dc.w 23
@@ -55732,7 +55744,7 @@ level_obj_ref_14_obj:
     dc.w 16
 level_obj_ref_15_obj:
     dc.l level_15_obj
-    dc.w 12
+    dc.w 13
 level_obj_ref_16_obj:
     dc.l level_16_obj
     dc.w 20
